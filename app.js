@@ -437,8 +437,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (IS_DEMO_ENV) {
                     // 데모 모드 클라이언트 사이드 검색 구현
                     const docs = [
-                        { path: 'welcome.md', name: '환영합니다', file: './docs/welcome.md' },
-                        { path: 'demo-folder/sample1.md', name: '마크다운 샘플', file: './docs/demo-folder/sample1.md' }
+                        { path: 'welcome.md', name: 'Welcome', file: './docs/welcome.md' },
+                        { path: 'demo-folder/sample1.md', name: 'Korean', file: './docs/demo-folder/sample1.md' }
                     ];
                     for (const doc of docs) {
                         try {
@@ -625,7 +625,7 @@ document.addEventListener('DOMContentLoaded', () => {
             sessionStorage.setItem('authToken', authToken);
             loginDialog.close();
             updateAuthUI();
-            alert('데모 관리자로 로그인되었습니다. (임시로 생성/수정/삭제 UI가 활성화되나 실서버에는 반영되지 않습니다.)');
+            alert('logged in with demo. (Any Changes you make will not applied permanently.)');
             return;
         }
         try {
@@ -1117,7 +1117,7 @@ document.addEventListener('DOMContentLoaded', () => {
         try {
             localStorage.setItem('siteConfig', JSON.stringify(currentSettings));
             if (IS_DEMO_ENV) {
-                alert('데모 모드: 설정이 브라우저 로컬 스토리지에 임시 저장되었습니다.');
+                alert('Demo Settings are temporarily saved in the browser.');
                 settingsDialog.close();
                 return;
             }
@@ -1154,7 +1154,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (imageUploadInput.files.length === 0) return;
         
         if (IS_DEMO_ENV) {
-            alert('데모 모드에서는 이미지 업로드를 지원하지 않습니다.');
+            alert('Image upload is not available in demo.');
             return;
         }
 
@@ -1176,7 +1176,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 try {
                     await navigator.clipboard.writeText(data.markdown);
-                    alert('경로가 클립보드에 복사되었습니다.');
+                    alert('Copied to clipboard!');
                 } catch(e) {}
 
                 doImageUploadBtn.innerHTML = 'OK';
@@ -1232,7 +1232,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (e.submitter && e.submitter.id === 'do-rename-btn') {
             e.preventDefault();
             if (IS_DEMO_ENV) {
-                alert('데모 버전에서는 파일/폴더 이름 변경을 지원하지 않습니다.');
+                alert('File/Folder change is not available in demo.');
                 return;
             }
             const newName = renameItemInput.value.trim();
@@ -1274,7 +1274,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (e.submitter && e.submitter.id === 'do-create-item-btn') {
             e.preventDefault();
             if (IS_DEMO_ENV) {
-                alert('데모 버전에서는 파일/폴더 생성을 지원하지 않습니다.');
+                alert('File/Folder change is not available in demo.');
                 return;
             }
             const name = createNameInput.value.trim();
@@ -1326,7 +1326,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (e.submitter && e.submitter.id === 'do-delete-btn') {
             e.preventDefault();
             if (IS_DEMO_ENV) {
-                alert('데모 버전에서는 파일/폴더 삭제를 지원하지 않습니다.');
+                alert('File/Folder change is not available in demo.');
                 return;
             }
             try {
