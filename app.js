@@ -390,12 +390,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // Initial Load
-    loadSettings();
-    loadTree();
-    if (currentPath) {
-        loadContent(currentPath);
-    }
 
     // Header buttons logic
     const searchBtn = document.getElementById('search-btn');
