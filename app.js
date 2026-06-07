@@ -294,7 +294,6 @@ document.addEventListener('DOMContentLoaded', () => {
             }
 
             currentMarkdown = markdownText;
-            const lastModified = data.lastModified;
             
             // Re-render markdown body to trigger CSS animation
             markdownContainer.classList.remove('markdown-body');
