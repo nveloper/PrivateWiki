@@ -414,8 +414,8 @@ app.get('/api/settings', (req, res) => {
 
 // API: Save Settings
 app.post('/api/settings', requireAuth, (req, res) => {
-  const { primaryColor, customFont, customFontUrl, themeMode, siteTitle, faviconUrl } = req.body;
-  const settings = { primaryColor, customFont, customFontUrl, themeMode, siteTitle, faviconUrl };
+  const { primaryColor, customFont, customFontUrl, themeMode, siteTitle, faviconUrl, darkModeStart, darkModeEnd, homeDocument } = req.body;
+  const settings = { primaryColor, customFont, customFontUrl, themeMode, siteTitle, faviconUrl, darkModeStart, darkModeEnd, homeDocument };
   try {
     fs.writeFileSync(SETTINGS_FILE, JSON.stringify(settings, null, 2), 'utf8');
     res.json({ success: true, settings });
