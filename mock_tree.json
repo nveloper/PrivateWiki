@@ -1,0 +1,19 @@
+[
+  {
+    "name": "데모 폴더 📂",
+    "type": "folder",
+    "path": "demo-folder",
+    "children": [
+      {
+        "name": "마크다운 샘플.md",
+        "type": "file",
+        "path": "demo-folder/sample1.md"
+      }
+    ]
+  },
+  {
+    "name": "환영합니다.md",
+    "type": "file",
+    "path": "welcome.md"
+  }
+]
