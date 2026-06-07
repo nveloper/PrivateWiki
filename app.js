@@ -1,5 +1,7 @@
 import { themeFromSourceColor, applyTheme, argbFromHex } from "https://esm.run/@material/material-color-utilities";
 
+const IS_DEMO_ENV = window.location.hostname.includes('github.io');
+
 document.addEventListener('DOMContentLoaded', () => {
     const treeContainer = document.getElementById('tree-container');
     const markdownContainer = document.getElementById('markdown-container');
@@ -58,12 +60,24 @@ document.addEventListener('DOMContentLoaded', () => {
     async function loadTree() {
         try {
            
-        // 현재 호스트네임에 github.io가 있으면 데모 파일로 우회
-            const isDemo = window.location.hostname.includes('github.io');
-            const fetchUrl = isDemo ? './mock-tree.json' : '/api/tree';
+        // 상대 경로 기법으로 명확하게 지정
+            const fetchUrl = IS_DEMO_ENV ? './mock-tree.json' : '/api/tree';
+            const response = await fetch(fetchUrl, IS_DEMO_ENV ? {} : { cache: 'no-store' });
         
-            const response = await fetch(fetchUrl, isDemo ? {} : { cache: 'no-store' });
+        // 깃허브 페이지 404 예외 처리 추가 (안전장치)
+            if (IS_DEMO_ENV && !response.ok) {
+                console.error("데모 파일을 찾을 수 없습니다. 경로를 확인하세요.");
+                return;
+            }
+        
             const treeData = await response.json();
+        // ... 이하 동일
+        // 현재 호스트네임에 github.io가 있으면 데모 파일로 우회
+        //    const isDemo = window.location.hostname.includes('github.io');
+        //    const fetchUrl = isDemo ? './mock-tree.json' : '/api/tree';
+        //
+        //    const response = await fetch(fetchUrl, isDemo ? {} : { cache: 'no-store' });
+        //    const treeData = await response.json();
         
         // ... (이하 기존 코드 동일)
             
@@ -262,14 +276,18 @@ document.addEventListener('DOMContentLoaded', () => {
         markdownContainer.innerHTML = '<div style="text-align: center; padding: 40px;"><md-circular-progress indeterminate></md-circular-progress></div>';
 
         try {
-            const isDemo = window.location.hostname.includes('github.io');
-        // 데모 환경이면 어떤 메뉴를 누르든 일단 준비된 mock-content.json을 읽어옴
-            const fetchUrl = isDemo ? './mock-content.json' : `/api/content?path=${encodeURIComponent(path)}`;
-
+            const fetchUrl = IS_DEMO_ENV ? './mock-content.json' : `/api/content?path=${encodeURIComponent(path)}`;
             const response = await fetch(fetchUrl);
-            if (!response.ok) throw new Error(response.statusText);
         
             const data = await response.json();
+            //const isDemo = window.location.hostname.includes('github.io');
+        // 데모 환경이면 어떤 메뉴를 누르든 일단 준비된 mock-content.json을 읽어옴
+            //const fetchUrl = isDemo ? './mock-content.json' : `/api/content?path=${encodeURIComponent(path)}`;
+
+            //const response = await fetch(fetchUrl);
+            //if (!response.ok) throw new Error(response.statusText);
+        
+            //const data = await response.json();
         
         // ... (이하 기존 코드 동일)
         
