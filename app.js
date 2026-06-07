@@ -933,7 +933,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
     async function loadSettings() {
         try {
-            const res = await fetch('/api/settings');
+            //const res = await fetch('/api/settings');
+
+            // 기존 코드 예시 (주소를 찾아서 변경해 주세요)
+
+            // 💡 변경 코드
+            const isDemo = window.location.hostname.includes('github.io');
+            const fetchUrl = isDemo ? './mock-settings.json' : '/api/settings';
+            const response = await fetch(fetchUrl);
             currentSettings = Object.assign(currentSettings, await res.json());
             localStorage.setItem('siteConfig', JSON.stringify(currentSettings));
             if (currentSettings.customFontUrl) applyFont(currentSettings.customFont, currentSettings.customFontUrl);
