@@ -1333,6 +1333,18 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Custom Mobile-App Style Pop Animations for Dialogs (Intercepts the 'quick' instant open)
     document.querySelectorAll('md-dialog').forEach(mdDialog => {
+        // Override the close method to inject our animation
+        const originalClose = mdDialog.close.bind(mdDialog);
+        mdDialog.close = async function(returnValue) {
+            if (this.open && !this._isClosing) {
+                this._isClosing = true;
+                await playCloseAnim(this);
+                originalClose(returnValue);
+                this._isClosing = false;
+            } else if (!this.open && !this._isClosing) {
+                originalClose(returnValue);
+            }
+        };
         mdDialog.addEventListener('open', () => {
             const nativeDialog = mdDialog.shadowRoot.querySelector('.dialog') || mdDialog.shadowRoot.querySelector('dialog');
             
@@ -1363,10 +1375,9 @@ document.addEventListener('DOMContentLoaded', () => {
         });
 
         // Intercept cancel event (Escape key or scrim click)
-        mdDialog.addEventListener('cancel', async (e) => {
+        mdDialog.addEventListener('cancel', (e) => {
             e.preventDefault();
-            await playCloseAnim(mdDialog);
-            mdDialog.close();
+            mdDialog.close(); // Triggers our overridden close with animation
         });
     });
 
@@ -1401,15 +1412,8 @@ document.addEventListener('DOMContentLoaded', () => {
         await animFinished;
     }
 
-    // Intercept form submissions inside dialogs to play reverse animation before closing
-    document.querySelectorAll('form[method="dialog"]').forEach(form => {
-        form.addEventListener('submit', async (e) => {
-            e.preventDefault(); // Stop native instant close
-            const mdDialog = form.closest('md-dialog');
-            await playCloseAnim(mdDialog);
-            mdDialog.close(); // Manually close after animation
-        });
-    });
+    // Note: form[method="dialog"] submissions are now handled naturally because 
+    // MWC md-dialog internally calls .close(), which we have overridden above.
 
     // Scroll to Top and Pill FAB Logic
     const pillFabContainer = document.querySelector('.pill-fab-container');
