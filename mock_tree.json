@@ -1,18 +1,18 @@
 [
   {
-    "name": "데모 폴더 📂",
+    "name": "Demo Folder",
     "type": "folder",
     "path": "demo-folder",
     "children": [
       {
-        "name": "마크다운 샘플.md",
+        "name": "Korean.md",
         "type": "file",
         "path": "demo-folder/sample1.md"
       }
     ]
   },
   {
-    "name": "환영합니다.md",
+    "name": "Welcome.md",
     "type": "file",
     "path": "welcome.md"
   }
