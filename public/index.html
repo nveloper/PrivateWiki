@@ -92,6 +92,7 @@
         <div slot="headline">Settings</div>
         <form slot="content" id="settings-form" method="dialog" style="display:flex; flex-direction:column; gap:16px;">
             <md-outlined-text-field label="Site Title" id="site-title-input" style="width:100%;"></md-outlined-text-field>
+            <md-outlined-text-field label="Home Document (e.g. welcome.md)" id="home-document-input" style="width:100%;" supporting-text="Leave empty for default empty state"></md-outlined-text-field>
             <md-outlined-select label="Theme Mode" id="theme-mode-select" style="width:100%;">
                 <md-select-option value="system"><div slot="headline">System Default</div></md-select-option>
                 <md-select-option value="light"><div slot="headline">Light</div></md-select-option>
@@ -300,6 +301,6 @@
         </div>
     </div>
 
-    <script src="app.js?v=36" type="module"></script>
+    <script src="app.js?v=38" type="module"></script>
 </body>
 </html>

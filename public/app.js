@@ -12,6 +12,27 @@ document.addEventListener('DOMContentLoaded', () => {
     let authToken = sessionStorage.getItem('authToken') || null;
     let isEditMode = false;
 
+    // Shared Empty State HTML
+    const getEmptyStateHtml = () => `
+        <h1>Welcome to Wiki</h1>
+        <p>Select a document from the left sidebar to start reading.</p>
+    `;
+
+    function loadHome(historyMode = 'push') {
+        if (currentSettings.homeDocument) {
+            currentPath = currentSettings.homeDocument;
+            if (historyMode === 'push') window.history.pushState({ path: currentPath }, '', `/?path=${encodeURIComponent(currentPath)}`);
+            if (historyMode === 'replace') window.history.replaceState({ path: currentPath }, '', `/?path=${encodeURIComponent(currentPath)}`);
+            loadContent(currentPath);
+        } else {
+            currentPath = '';
+            if (historyMode === 'push') window.history.pushState({ path: '' }, '', '/');
+            if (historyMode === 'replace') window.history.replaceState({ path: '' }, '', '/');
+            markdownContainer.innerHTML = getEmptyStateHtml();
+            document.querySelectorAll('.tree-item').forEach(el => el.classList.remove('active'));
+        }
+    }
+
     // Icon Animation Trigger
     function triggerIconAnim(btnId, animClass) {
         const btn = document.getElementById(btnId);
@@ -353,11 +374,7 @@ document.addEventListener('DOMContentLoaded', () => {
             currentPath = path;
             loadTree();
         } else {
-            markdownContainer.innerHTML = `
-                <h1>Welcome to Wiki</h1>
-                <p>Select a document from the left sidebar to start reading.</p>
-            `;
-            currentPath = '';
+            loadHome('none');
             loadTree();
         }
     });
@@ -377,13 +394,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const closeSearchBtn = document.getElementById('close-search-btn');
 
     document.getElementById('app-title').addEventListener('click', () => {
-        currentPath = '';
-        window.history.pushState({ path: '' }, '', '/');
-        markdownContainer.innerHTML = `
-            <h1>Welcome to Wiki</h1>
-            <p>Select a document from the left sidebar to start reading.</p>
-        `;
-        document.querySelectorAll('.tree-item').forEach(el => el.classList.remove('active'));
+        loadHome('push');
     });
 
     searchBtn.addEventListener('click', () => {
@@ -687,8 +698,9 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 
-    let currentSettings = { primaryColor: '#6750A4', customFont: null, customFontUrl: null, themeMode: 'system', siteTitle: 'DB-less Wiki', faviconUrl: null, darkModeStart: '18:00', darkModeEnd: '06:00' };
+    let currentSettings = { primaryColor: '#6750A4', customFont: null, customFontUrl: null, themeMode: 'system', siteTitle: 'DB-less Wiki', faviconUrl: null, darkModeStart: '18:00', darkModeEnd: '06:00', homeDocument: '' };
     const siteTitleInput = document.getElementById('site-title-input');
+    const homeDocumentInput = document.getElementById('home-document-input');
     const appTitle = document.getElementById('app-title');
     const pageTitle = document.getElementById('page-title');
     const pageFavicon = document.getElementById('page-favicon');
@@ -820,6 +832,7 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('dark-mode-start').value = currentSettings.darkModeStart || '18:00';
         document.getElementById('dark-mode-end').value = currentSettings.darkModeEnd || '06:00';
         siteTitleInput.value = currentSettings.siteTitle || 'DB-less Wiki';
+        if (homeDocumentInput) homeDocumentInput.value = currentSettings.homeDocument || '';
         fontUploadInput.value = '';
         fontUploadStatus.textContent = 'No file selected';
         if (typeof faviconUploadInput !== 'undefined') {
@@ -958,6 +971,7 @@ document.addEventListener('DOMContentLoaded', () => {
         currentSettings.darkModeStart = document.getElementById('dark-mode-start').value || '18:00';
         currentSettings.darkModeEnd = document.getElementById('dark-mode-end').value || '06:00';
         currentSettings.siteTitle = siteTitleInput.value || 'DB-less Wiki';
+        if (homeDocumentInput) currentSettings.homeDocument = homeDocumentInput.value || '';
         applySiteTitle(currentSettings.siteTitle);
         updateTheme();
 
@@ -1504,10 +1518,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (currentPath) {
             loadContent(currentPath);
         } else {
-            markdownContainer.innerHTML = `
-                <h1>Welcome to Wiki</h1>
-                <p>Select a document from the left sidebar to start reading.</p>
-            `;
+            loadHome('replace');
         }
     }
     
