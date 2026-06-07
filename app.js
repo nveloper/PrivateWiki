@@ -1,6 +1,6 @@
 import { themeFromSourceColor, applyTheme, argbFromHex } from "https://esm.run/@material/material-color-utilities";
 
-const IS_DEMO_ENV = window.location.hostname.includes('github.io');
+const IS_DEMO_ENV = window.location.hostname.includes('github.io') || window.location.search.includes('demo=true');
 
 document.addEventListener('DOMContentLoaded', () => {
     const treeContainer = document.getElementById('tree-container');
@@ -59,30 +59,17 @@ document.addEventListener('DOMContentLoaded', () => {
     // Load file tree
     async function loadTree() {
         try {
-           
-        // 상대 경로 기법으로 명확하게 지정
-            const fetchUrl = IS_DEMO_ENV ? './mock-tree.json' : '/api/tree';
+            // 상대 경로 기법으로 명확하게 지정 (언더바 파일명 수정)
+            const fetchUrl = IS_DEMO_ENV ? './mock_tree.json' : '/api/tree';
             const response = await fetch(fetchUrl, IS_DEMO_ENV ? {} : { cache: 'no-store' });
         
-        // 깃허브 페이지 404 예외 처리 추가 (안전장치)
+            // 깃허브 페이지 404 예외 처리 추가 (안전장치)
             if (IS_DEMO_ENV && !response.ok) {
                 console.error("데모 파일을 찾을 수 없습니다. 경로를 확인하세요.");
                 return;
             }
         
             const treeData = await response.json();
-        // ... 이하 동일
-        // 현재 호스트네임에 github.io가 있으면 데모 파일로 우회
-        //    const isDemo = window.location.hostname.includes('github.io');
-        //    const fetchUrl = isDemo ? './mock-tree.json' : '/api/tree';
-        //
-        //    const response = await fetch(fetchUrl, isDemo ? {} : { cache: 'no-store' });
-        //    const treeData = await response.json();
-        
-        // ... (이하 기존 코드 동일)
-            
-            //const response = await fetch('/api/tree', { cache: 'no-store' });
-            //const treeData = await response.json();
             globalTreeData = treeData;
             treeContainer.innerHTML = ''; // Clear existing
             renderTree(treeData, treeContainer);
@@ -270,46 +257,42 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     async function loadContent(path) {
-        
         if (!path) return;
         currentPath = path;
         markdownContainer.innerHTML = '<div style="text-align: center; padding: 40px;"><md-circular-progress indeterminate></md-circular-progress></div>';
 
         try {
-            const fetchUrl = IS_DEMO_ENV ? './mock-content.json' : `/api/content?path=${encodeURIComponent(path)}`;
-            const response = await fetch(fetchUrl);
-        
-            const data = await response.json();
-            //const isDemo = window.location.hostname.includes('github.io');
-        // 데모 환경이면 어떤 메뉴를 누르든 일단 준비된 mock-content.json을 읽어옴
-            //const fetchUrl = isDemo ? './mock-content.json' : `/api/content?path=${encodeURIComponent(path)}`;
+            let markdownText = '';
+            let lastModified = Date.now();
 
-            //const response = await fetch(fetchUrl);
-            //if (!response.ok) throw new Error(response.statusText);
-        
-            //const data = await response.json();
-        
-        // ... (이하 기존 코드 동일)
-        
-        
-        //if (!path) return;
-        
-        //currentPath = path;
-        
-        // Add loading state
-        //markdownContainer.innerHTML = '<div style="text-align: center; padding: 40px;"><md-circular-progress indeterminate></md-circular-progress></div>';
+            if (IS_DEMO_ENV) {
+                const localSaved = localStorage.getItem(`demo_content_${path}`);
+                if (localSaved !== null) {
+                    markdownText = localSaved;
+                } else {
+                    try {
+                        const response = await fetch(`./docs/${path}`);
+                        if (response.ok) {
+                            markdownText = await response.text();
+                        } else {
+                            const fallbackResponse = await fetch('./mock-content.json');
+                            const fallbackData = await fallbackResponse.json();
+                            markdownText = fallbackData.content || fallbackData;
+                        }
+                    } catch (err) {
+                        const fallbackResponse = await fetch('./mock-content.json');
+                        const fallbackData = await fallbackResponse.json();
+                        markdownText = fallbackData.content || fallbackData;
+                    }
+                }
+            } else {
+                const response = await fetch(`/api/content?path=${encodeURIComponent(path)}`);
+                if (!response.ok) throw new Error(response.statusText);
+                const data = await response.json();
+                markdownText = data.content || data;
+                lastModified = data.lastModified;
+            }
 
-        //try {
-            // Encode the path for the API call to handle spaces and special chars
-            //const encodedPath = encodeURIComponent(path);
-            //const response = await fetch(`/api/content?path=${encodedPath}`);
-            
-            //if (!response.ok) {
-            //    throw new Error(response.statusText);
-            //}
-            
-            //const data = await response.json();
-            const markdownText = data.content || data; // Fallback in case old server code hits
             currentMarkdown = markdownText;
             const lastModified = data.lastModified;
             
@@ -457,8 +440,42 @@ document.addEventListener('DOMContentLoaded', () => {
         searchTimeout = setTimeout(async () => {
             searchResults.innerHTML = '<div style="padding:16px; text-align:center;">Searching...</div>';
             try {
-                const res = await fetch(`/api/search?q=${encodeURIComponent(query)}`);
-                const data = await res.json();
+                let data = [];
+                if (IS_DEMO_ENV) {
+                    // 데모 모드 클라이언트 사이드 검색 구현
+                    const docs = [
+                        { path: 'welcome.md', name: '환영합니다', file: './docs/welcome.md' },
+                        { path: 'demo-folder/sample1.md', name: '마크다운 샘플', file: './docs/demo-folder/sample1.md' }
+                    ];
+                    for (const doc of docs) {
+                        try {
+                            const localSaved = localStorage.getItem(`demo_content_${doc.path}`);
+                            let text = '';
+                            if (localSaved !== null) {
+                                text = localSaved;
+                            } else {
+                                const response = await fetch(doc.file);
+                                if (response.ok) text = await response.text();
+                            }
+                            if (text.toLowerCase().includes(query.toLowerCase()) || doc.name.toLowerCase().includes(query.toLowerCase())) {
+                                const index = text.toLowerCase().indexOf(query.toLowerCase());
+                                const start = Math.max(0, index - 30);
+                                const end = Math.min(text.length, index + query.length + 30);
+                                const snippet = index !== -1 
+                                    ? (start > 0 ? '...' : '') + text.substring(start, end).replace(/\n/g, ' ') + (end < text.length ? '...' : '')
+                                    : 'Matched in title';
+                                data.push({
+                                    path: doc.path,
+                                    name: doc.name,
+                                    snippet: snippet
+                                });
+                            }
+                        } catch(e) {}
+                    }
+                } else {
+                    const res = await fetch(`/api/search?q=${encodeURIComponent(query)}`);
+                    data = await res.json();
+                }
                 
                 if (data.length === 0) {
                     searchResults.innerHTML = '<div style="padding:16px; text-align:center;">No results found.</div>';
@@ -609,6 +626,15 @@ document.addEventListener('DOMContentLoaded', () => {
 
     doLoginBtn.addEventListener('click', async (e) => {
         e.preventDefault();
+        if (IS_DEMO_ENV) {
+            // 데모 모드에서는 아무 계정으로나 모의 로그인 허용
+            authToken = 'demo-token';
+            sessionStorage.setItem('authToken', authToken);
+            loginDialog.close();
+            updateAuthUI();
+            alert('데모 관리자로 로그인되었습니다. (임시로 생성/수정/삭제 UI가 활성화되나 실서버에는 반영되지 않습니다.)');
+            return;
+        }
         try {
             const res = await fetch('/api/login', {
                 method: 'POST',
@@ -710,6 +736,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
         document.getElementById('edit-save-btn').addEventListener('click', async () => {
             const newContent = document.getElementById('edit-textarea').value;
+            if (IS_DEMO_ENV) {
+                localStorage.setItem(`demo_content_${currentPath}`, newContent);
+                alert('데모 모드: 변경사항이 브라우저 로컬 스토리지에 임시 저장되었습니다.');
+                isEditMode = false;
+                imageUploadBtn.style.display = 'none';
+                loadContent(currentPath);
+                return;
+            }
             try {
                 const res = await fetch('/api/content', {
                     method: 'POST',
@@ -874,7 +908,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         try {
-            const resFonts = await fetch('/api/uploads/fonts');
+            const resFonts = IS_DEMO_ENV ? { ok: true, json: async () => ({ files: [] }) } : await fetch('/api/uploads/fonts');
             if (resFonts.ok) {
                 const data = await resFonts.json();
                 let html = '<md-select-option value=""><div slot="headline">Default System Font</div></md-select-option>';
@@ -904,7 +938,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     }, 50);
                 }
             }
-            const resImages = await fetch('/api/uploads/favicons');
+            const resImages = IS_DEMO_ENV ? { ok: true, json: async () => ({ files: [] }) } : await fetch('/api/uploads/favicons');
             if (resImages.ok) {
                 const data = await resImages.json();
                 let html = '<md-select-option value=""><div slot="headline">Default (None)</div></md-select-option>';
@@ -951,15 +985,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
     async function loadSettings() {
         try {
-            //const res = await fetch('/api/settings');
-
-            // 기존 코드 예시 (주소를 찾아서 변경해 주세요)
-
-            // 💡 변경 코드
-            const isDemo = window.location.hostname.includes('github.io');
-            const fetchUrl = isDemo ? './mock-settings.json' : '/api/settings';
+            const fetchUrl = IS_DEMO_ENV ? './mock_settings.json' : '/api/settings';
             const response = await fetch(fetchUrl);
-            currentSettings = Object.assign(currentSettings, await res.json());
+            currentSettings = Object.assign(currentSettings, await response.json());
             localStorage.setItem('siteConfig', JSON.stringify(currentSettings));
             if (currentSettings.customFontUrl) applyFont(currentSettings.customFont, currentSettings.customFontUrl);
             applySiteTitle(currentSettings.siteTitle);
@@ -1006,6 +1034,11 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     saveSettingsBtn.addEventListener('click', async () => {
+        if (IS_DEMO_ENV && (fontUploadInput.files.length > 0 || faviconUploadInput.files.length > 0)) {
+            alert('데모 모드에서는 폰트/파비콘 파일 업로드를 지원하지 않습니다.');
+            return;
+        }
+
         currentSettings.primaryColor = customHexInput.value;
         currentSettings.themeMode = themeModeSelect.value;
         currentSettings.darkModeStart = document.getElementById('dark-mode-start').value || '18:00';
@@ -1090,6 +1123,11 @@ document.addEventListener('DOMContentLoaded', () => {
         // Save settings to server and local storage
         try {
             localStorage.setItem('siteConfig', JSON.stringify(currentSettings));
+            if (IS_DEMO_ENV) {
+                alert('데모 모드: 설정이 브라우저 로컬 스토리지에 임시 저장되었습니다.');
+                settingsDialog.close();
+                return;
+            }
             const res = await fetch('/api/settings', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${authToken}` },
@@ -1122,6 +1160,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
         if (imageUploadInput.files.length === 0) return;
         
+        if (IS_DEMO_ENV) {
+            alert('데모 모드에서는 이미지 업로드를 지원하지 않습니다.');
+            return;
+        }
+
         const file = imageUploadInput.files[0];
         const formData = new FormData();
         formData.append('image', file);
@@ -1195,6 +1238,10 @@ document.addEventListener('DOMContentLoaded', () => {
     renameItemForm.addEventListener('submit', async (e) => {
         if (e.submitter && e.submitter.id === 'do-rename-btn') {
             e.preventDefault();
+            if (IS_DEMO_ENV) {
+                alert('데모 버전에서는 파일/폴더 이름 변경을 지원하지 않습니다.');
+                return;
+            }
             const newName = renameItemInput.value.trim();
             if (!newName) return alert('Name required');
 
@@ -1233,6 +1280,10 @@ document.addEventListener('DOMContentLoaded', () => {
         // Only handle our custom Create button click, let Cancel natively close
         if (e.submitter && e.submitter.id === 'do-create-item-btn') {
             e.preventDefault();
+            if (IS_DEMO_ENV) {
+                alert('데모 버전에서는 파일/폴더 생성을 지원하지 않습니다.');
+                return;
+            }
             const name = createNameInput.value.trim();
             if (!name) return alert('Name required');
             
@@ -1281,6 +1332,10 @@ document.addEventListener('DOMContentLoaded', () => {
     deleteConfirmForm.addEventListener('submit', async (e) => {
         if (e.submitter && e.submitter.id === 'do-delete-btn') {
             e.preventDefault();
+            if (IS_DEMO_ENV) {
+                alert('데모 버전에서는 파일/폴더 삭제를 지원하지 않습니다.');
+                return;
+            }
             try {
                 const res = await fetch('/api/delete', {
                     method: 'POST',

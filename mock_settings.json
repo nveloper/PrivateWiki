@@ -1,5 +1,8 @@
 {
-  "theme": "light",
-  "wikiName": "Private Wiki 데모",
-  "version": "1.0.0"
+  "themeMode": "system",
+  "siteTitle": "Private Wiki 데모 🌐",
+  "primaryColor": "#6750A4",
+  "customFont": null,
+  "customFontUrl": null,
+  "faviconUrl": null
 }
