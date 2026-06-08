@@ -1,6 +1,11 @@
 import { themeFromSourceColor, applyTheme, argbFromHex } from "https://esm.run/@material/material-color-utilities";
 
 document.addEventListener('DOMContentLoaded', () => {
+    // Enable KaTeX support in marked.js
+    if (typeof markedKatex !== 'undefined') {
+        marked.use(markedKatex({ throwOnError: false }));
+    }
+
     const treeContainer = document.getElementById('tree-container');
     const markdownContainer = document.getElementById('markdown-container');
     const sidebar = document.getElementById('sidebar');
@@ -285,6 +290,17 @@ document.addEventListener('DOMContentLoaded', () => {
             
             const data = await response.json();
             const markdownText = data.content || data; // Fallback in case old server code hits
+            
+            // Check for redirect macro: {{REDIRECT:target.md}}
+            const redirectMatch = markdownText.match(/\{\{REDIRECT:([^}]+)\}\}/);
+            if (redirectMatch) {
+                const targetPath = redirectMatch[1].trim();
+                if (path !== targetPath) {
+                    window.history.replaceState({ path: targetPath }, '', `/?path=${encodeURIComponent(targetPath)}`);
+                    return loadContent(targetPath);
+                }
+            }
+
             currentMarkdown = markdownText;
             const lastModified = data.lastModified;
             
@@ -317,6 +333,23 @@ document.addEventListener('DOMContentLoaded', () => {
             // Parse markdown to HTML using Marked.js after applying macros
             const processedText = processTimeMacros(markdownText);
             markdownContainer.innerHTML = breadcrumbsHtml + marked.parse(processedText);
+
+            // SPA routing for internal markdown links
+            markdownContainer.querySelectorAll('a').forEach(a => {
+                const href = a.getAttribute('href');
+                if (href && href.startsWith('/?path=')) {
+                    a.addEventListener('click', (e) => {
+                        e.preventDefault();
+                        const targetPath = new URLSearchParams(href.split('?')[1]).get('path');
+                        if (targetPath) {
+                            window.history.pushState({ path: targetPath }, '', href);
+                            loadContent(targetPath);
+                            currentPath = targetPath;
+                            loadTree();
+                        }
+                    });
+                }
+            });
 
             // Add click listeners to breadcrumbs
             const homeLink = markdownContainer.querySelector('.breadcrumb-home');
