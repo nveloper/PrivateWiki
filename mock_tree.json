@@ -1,13 +1,13 @@
 [
   {
-    "name": "Demo Folder",
+    "name": "KOR",
     "type": "folder",
-    "path": "demo-folder",
+    "path": "KOR",
     "children": [
       {
-        "name": "Korean.md",
+        "name": "Korean Manual",
         "type": "file",
-        "path": "demo-folder/sample1.md"
+        "path": "KOR/Korean Manual.md"
       }
     ]
   },
@@ -15,5 +15,10 @@
     "name": "Welcome.md",
     "type": "file",
     "path": "welcome.md"
+  },
+  {
+    "name": "English Manual",
+    "type": "file",
+    "path": "English Manual.md"
   }
 ]

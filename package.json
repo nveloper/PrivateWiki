@@ -1,7 +1,7 @@
 {
-  "name": "dbless-wiki",
+  "name": "PrivateWiki",
   "version": "1.0.0",
-  "description": "DB-less markdown wiki server",
+  "description": "PrivateWiki",
   "main": "server.js",
   "scripts": {
     "start": "node server.js"

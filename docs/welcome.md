@@ -1,4 +1,4 @@
-# Welcome to the Private Wiki
+# Welcome to the DB-less Wiki
 
 This is a modern, fast, and fully customizable wiki system that runs entirely without a database. All your content is stored as simple markdown files in the `docs/` folder, and assets are cleanly organized in `public/uploads/`.
 

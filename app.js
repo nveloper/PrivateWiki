@@ -271,16 +271,16 @@ document.addEventListener('DOMContentLoaded', () => {
                     markdownText = localSaved;
                 } else {
                     try {
-                        const response = await fetch(`./docs/${path}`);
+                        const response = await fetch(`docs/${path}`);
                         if (response.ok) {
                             markdownText = await response.text();
                         } else {
-                            const fallbackResponse = await fetch('./mock-content.json');
+                            const fallbackResponse = await fetch('mock-content.json');
                             const fallbackData = await fallbackResponse.json();
                             markdownText = fallbackData.content || fallbackData;
                         }
                     } catch (err) {
-                        const fallbackResponse = await fetch('./mock-content.json');
+                        const fallbackResponse = await fetch('mock-content.json');
                         const fallbackData = await fallbackResponse.json();
                         markdownText = fallbackData.content || fallbackData;
                     }
@@ -437,8 +437,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (IS_DEMO_ENV) {
                     // 데모 모드 클라이언트 사이드 검색 구현
                     const docs = [
-                        { path: 'welcome.md', name: 'Welcome', file: './docs/welcome.md' },
-                        { path: 'demo-folder/sample1.md', name: 'Korean', file: './docs/demo-folder/sample1.md' }
+                        { path: 'welcome.md', name: 'Welcome', file: 'docs/welcome.md' },
+                        { path: 'English Manual.md', name: 'English Manual', file: 'docs/English Manual.md' },
+                        { path: 'KOR/Korean Manual', name: 'Korean Manual', file: 'docs/KOR/Korean Manual.md' }
                     ];
                     for (const doc of docs) {
                         try {
@@ -978,7 +979,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     async function loadSettings() {
         try {
-            const fetchUrl = IS_DEMO_ENV ? './mock_settings.json' : '/api/settings';
+            const fetchUrl = IS_DEMO_ENV ? 'mock_settings.json' : '/api/settings';
             const response = await fetch(fetchUrl);
             currentSettings = Object.assign(currentSettings, await response.json());
             localStorage.setItem('siteConfig', JSON.stringify(currentSettings));
@@ -993,7 +994,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function applySiteTitle(title) {
-        const t = title || 'DB-less Wiki';
+        const t = title || 'PrivateWiki';
         appTitle.textContent = t;
         pageTitle.textContent = t;
     }
@@ -1036,7 +1037,7 @@ document.addEventListener('DOMContentLoaded', () => {
         currentSettings.themeMode = themeModeSelect.value;
         currentSettings.darkModeStart = document.getElementById('dark-mode-start').value || '18:00';
         currentSettings.darkModeEnd = document.getElementById('dark-mode-end').value || '06:00';
-        currentSettings.siteTitle = siteTitleInput.value || 'DB-less Wiki';
+        currentSettings.siteTitle = siteTitleInput.value || 'PrivateWiki';
         applySiteTitle(currentSettings.siteTitle);
         updateTheme();
 
@@ -1602,7 +1603,7 @@ document.addEventListener('DOMContentLoaded', () => {
             loadContent(currentPath);
         } else {
             markdownContainer.innerHTML = `
-                <h1>Welcome to Wiki</h1>
+                <h1>Welcome to PrivateWiki</h1>
                 <p>Select a document from the left sidebar to start reading.</p>
             `;
         }
