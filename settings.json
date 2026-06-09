@@ -1,5 +1,6 @@
 {
   "primaryColor": "#978aff",
+  "homeDocument": "welcome.md",
   "customFont": "CustomFont_GoogleSansMediumttf",
   "customFontUrl": "/uploads/fonts/GoogleSans-Medium.ttf",
   "themeMode": "schedule",
