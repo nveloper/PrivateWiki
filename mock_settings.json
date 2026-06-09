@@ -2,7 +2,7 @@
   "themeMode": "system",
   "siteTitle": "Private Wiki",
   "primaryColor": "#B3261E",
-  "customFont": null,
-  "customFontUrl": "General.ttf",
+  "customFont": "GoogleSans",
+  "customFontUrl": "/General.ttf",
   "faviconUrl": null
 }
