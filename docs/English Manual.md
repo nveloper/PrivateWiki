@@ -1,16 +1,16 @@
-# DB-less Wiki (Full Version) User & Operator Manual
+# Private Wiki User & Operator Manual
 
-This document explains how to operate and use the **DB-less Wiki (Full Version)**, which is powered by a Node.js backend server. It operates entirely without a database by exclusively using Markdown (`.md`) files. This version allows you to directly create, edit, and delete documents straight from the web UI.
+This document explains how to operate and use the **Private Wiki**, which is powered by a Node.js backend server. It operates entirely without a database by exclusively using Markdown (`.md`) files. This version allows you to directly create, edit, and delete documents straight from the web UI.
 
 ---
 
 ## 1. Running the Server & Initial Setup
 
 ### 1.1 How to Start the Server
-1. Open your terminal and navigate to the project's root folder (`STATIC/`).
+1. Open your terminal and navigate to the project's root folder (`/`).
 2. Run `npm install` to install the necessary dependencies.
 3. Start the server by running `node server.js`.
-4. Open your browser and go to `http://localhost:3001`.
+4. Open your browser and go to `http://localhost:8180`.
 
 ### 1.2 Administrator Login (Edit Permissions)
 To edit, delete, or create new documents, you must log in by clicking the **Padlock (Login)** icon in the top right corner.
