@@ -1,4 +1,8 @@
+<<<<<<< HEAD
 # Welcome to the Private Wiki Lite!
+=======
+# Welcome to the DB-less Wiki
+>>>>>>> parent of b64918b (Update welcome.md)
 
 This is a modern, fast, and fully customizable wiki system that runs entirely without a database. All your content is stored as simple markdown files in the `docs/` folder, and assets are cleanly organized in `assets/`.
 
