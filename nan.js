@@ -382,18 +382,12 @@ document.addEventListener('DOMContentLoaded', () => {
             currentPath = path;
             loadTree();
         } else {
-            if (currentSettings.homeDocument) {
-                currentPath = currentSettings.homeDocument;
-                loadContent(currentPath);
-                loadTree();
-            } else {
-                markdownContainer.innerHTML = `
-                    <h1>Welcome to Wiki</h1>
-                    <p>Select a document from the left sidebar to start reading.</p>
-                `;
-                currentPath = '';
-                loadTree();
-            }
+            markdownContainer.innerHTML = `
+                <h1>Welcome to Wiki</h1>
+                <p>Select a document from the left sidebar to start reading.</p>
+            `;
+            currentPath = '';
+            loadTree();
         }
     });
 
@@ -406,22 +400,13 @@ document.addEventListener('DOMContentLoaded', () => {
     const closeSearchBtn = document.getElementById('close-search-btn');
 
     document.getElementById('app-title').addEventListener('click', () => {
-        if (currentSettings.homeDocument) {
-            currentPath = currentSettings.homeDocument;
-            const newUrl = new URL(window.location);
-            newUrl.searchParams.set('path', currentPath);
-            window.history.pushState({ path: currentPath }, '', newUrl);
-            loadContent(currentPath);
-            loadTree();
-        } else {
-            currentPath = '';
-            window.history.pushState({ path: '' }, '', window.location.pathname);
-            markdownContainer.innerHTML = `
-                <h1>Welcome to Wiki</h1>
-                <p>Select a document from the left sidebar to start reading.</p>
-            `;
-            document.querySelectorAll('.tree-item').forEach(el => el.classList.remove('active'));
-        }
+        currentPath = '';
+        window.history.pushState({ path: '' }, '', window.location.pathname);
+        markdownContainer.innerHTML = `
+            <h1>Welcome to Wiki</h1>
+            <p>Select a document from the left sidebar to start reading.</p>
+        `;
+        document.querySelectorAll('.tree-item').forEach(el => el.classList.remove('active'));
     });
 
     searchBtn.addEventListener('click', () => {
@@ -1618,18 +1603,10 @@ document.addEventListener('DOMContentLoaded', () => {
         if (currentPath) {
             loadContent(currentPath);
         } else {
-            if (currentSettings.homeDocument) {
-                currentPath = currentSettings.homeDocument;
-                const newUrl = new URL(window.location);
-                newUrl.searchParams.set('path', currentPath);
-                window.history.replaceState({ path: currentPath }, '', newUrl);
-                loadContent(currentPath);
-            } else {
-                markdownContainer.innerHTML = `
-                    <h1>Welcome to PrivateWiki</h1>
-                    <p>Select a document from the left sidebar to start reading.</p>
-                `;
-            }
+            markdownContainer.innerHTML = `
+                <h1>Welcome to PrivateWiki</h1>
+                <p>Select a document from the left sidebar to start reading.</p>
+            `;
         }
     }
     
