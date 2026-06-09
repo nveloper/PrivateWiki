@@ -1,0 +1,52 @@
+[
+  {
+    "name": "English Manual.md",
+    "path": "English Manual.md",
+    "content": "# DB-less Wiki (Static Version) User & Operator Manual\n\nThis document explains how to operate and use the **DB-less Wiki (Static Version)**, which is optimized for **Static Web Hosting** environments such as GitHub Pages, Vercel, and others.\n\nThis version runs entirely on vanilla HTML, CSS, and JS without a backend server (Node.js). For security and ease of management, all file editing and uploading features have been completely removed from the web UI, making this a \"Read-Only\" deployment version.\n\n---\n\n## 1. Static Wiki Structure & Document Creation\n\nBecause this wiki lacks a database and an online editor, administrators must manually write Markdown (`.md`) files on their local computers and upload (commit/push) them to GitHub.\n\n### 1.1 Managing Folders and Documents\nAll wiki documents are managed inside the `ghp/docs/` folder.\n- Create new folders or markdown files (e.g., `document_name.md`) directly inside the `docs/` folder.\n- The folder and file structure you create will be perfectly mirrored in the left sidebar's **Tree Menu (Table of Contents)** on the website.\n- Image files can also be placed inside the `docs/` folder and referenced using relative paths in your Markdown, or you can create an `uploads/images/` folder to manage them centrally.\n\n### 1.2 Updating Search and Navigation Data (Required)\nWhenever you create, rename, or delete a document, you must update the navigation tree (`tree.json`) and the search index (`search_index.json`) so the wiki is aware of the changes.\n\n**[Automatic Update - Using GitHub Pages]**\n- When you push your code to GitHub, GitHub Actions will automatically run the build script to update the file tree and search data. (No manual action required)\n\n**[Manual Update - Local Testing or Other Hosting]**\n- Open your terminal, navigate to the `ghp/` folder, and run the following command:\n  ```bash\n  node ghp_build.js\n  ```\n- After running the script, verify that `tree.json` and `search_index.json` have been newly generated or updated, and then deploy the site.\n\n---\n\n## 2. Managing Global Site Settings (`settings.json`)\n\nAll global configurations (like setting the homepage) that were previously in the web UI have been consolidated into a single configuration file.\nTo change the overarching site settings, you must directly edit the `ghp/settings.json` text file.\n\n```json\n{\n  \"siteTitle\": \"My Awesome Wiki\",\n  \"homeDocument\": \"folder1/welcome.md\",\n  \"faviconUrl\": \"uploads/favicons/favicon.ico\",\n  \"customFontUrl\": \"uploads/fonts/myfont.woff2\",\n  \"customFont\": \"NanumGothic\"\n}\n```\n- **siteTitle:** The name of the site displayed in the browser tab and the top left corner.\n- **homeDocument:** The path to the main document to load upon first access. (Paths should be relative to the `docs/` folder, e.g., `welcome.md`).\n- **faviconUrl:** The path to the favicon image displayed in the browser tab. (You can provide an absolute URL or a path relative to the `ghp/` folder.)\n- **customFontUrl:** The path to your custom font file.\n- **customFont:** Assign a name to your custom font. (English names are recommended.)\n\n*(Note: Personal preferences such as Theme Mode or the Primary Color Palette can still be set individually by each user clicking the Gear (Settings) icon in the top right corner of the browser.)*\n\n---\n\n## 3. Basic Usage & Macro Features\n\nEven in the static version, document reading, inner Table of Contents (TOC) scrolling, and search functionality work identically to the full version.\n\nAdditionally, if you manually type the following macro syntax directly into your Markdown files, you can utilize the exact same dynamic features.\n\n**1. Redirect (Auto Document Forwarding)**\nWrite this at the very top of a document to force-redirect anyone who accesses it to a new location.\n```markdown\n&#123;&#123;REDIRECT:new_folder/new_document.md&#125;&#125;\n```\n\n**2. D-Day Calculator**\nAutomatically calculates and displays the number of days remaining until (or passed since) a specific date.\n```markdown\nThere are &#123;&#123;DAYS_UNTIL:2026-10-31&#125;&#125; days left until the festival!\n```\n"
+  },
+  {
+    "name": "Korean Manual.md",
+    "path": "Korean Manual.md",
+    "content": "# DB-less Wiki (Static Version) 운영/이용 메뉴얼\n\n본 문서는 GitHub Pages, Vercel 등 **정적 웹 호스팅(Static Web Hosting)** 을 위해 최적화된 **DB-less Wiki (Static Version)** 의 운영 및 사용법을 설명합니다.\n\n이 버전은 백엔드 서버(Node.js) 없이 순수 HTML, CSS, JS만으로 구동되며, 보안과 관리의 편리함을 위해 웹 UI에서의 편집 및 업로드 기능이 완전히 제거된 \"읽기 전용(Read-Only)\" 배포 버전입니다.\n\n---\n\n## 1. 정적 위키 구조 및 문서 작성법\n\n이 위키는 데이터베이스가 없으며, 관리자가 컴퓨터(로컬)에서 직접 마크다운(`.md`) 파일을 작성하여 깃허브(GitHub)에 업로드(Commit/Push)하는 방식으로 운영됩니다.\n\n### 1.1 문서 및 폴더 관리\n모든 위키 문서는 `ghp/docs/` 폴더 안에서 관리됩니다.\n- `docs/` 폴더 안에 원하는 이름으로 새 폴더를 만들거나 `문서이름.md` 형식의 마크다운 파일을 생성하세요.\n- 생성된 폴더와 파일 구조가 웹사이트 좌측 사이드바의 **트리 메뉴(목록표)** 에 그대로 반영됩니다.\n- 이미지 파일 역시 `docs/` 폴더 내부에 함께 넣어두고 마크다운에서 상대 경로로 불러오거나, `uploads/images/` 폴더를 생성하여 관리할 수 있습니다.\n\n### 1.2 검색 및 목록 데이터 갱신 (필수)\n새로운 문서를 작성했거나 삭제했다면, 위키가 이를 인식할 수 있도록 목록표(`tree.json`)와 검색 데이터(`search_index.json`)를 갱신해 주어야 합니다.\n\n**[자동 갱신 - GitHub Pages 사용 시]**\n- 깃허브에 코드를 푸시(Push)하면 깃허브 액션(GitHub Actions)이 자동으로 빌드 스크립트를 실행하여 목록과 검색 데이터를 갱신합니다. (추가 작업 필요 없음)\n\n**[수동 갱신 - 로컬 테스트나 다른 호스팅 사용 시]**\n- 터미널에서 `ghp/` 폴더로 이동한 뒤 아래 명령어를 실행합니다.\n  ```bash\n  node ghp_build.js\n  ```\n- 실행 후 `tree.json`과 `search_index.json` 파일이 새로 생성된 것을 확인하고 배포하시면 됩니다.\n\n---\n\n## 2. 사이트 전체 설정 관리 (`settings.json`)\n\n웹 UI에 있던 글로벌 설정(홈페이지 지정 등)이 모두 하나의 설정 파일로 통합되었습니다.\n사이트의 굵직한 설정을 바꾸려면 `ghp/settings.json` 파일을 열어 직접 텍스트를 수정해야 합니다.\n\n```json\n{\n  \"siteTitle\": \"내 멋진 위키\",\n  \"homeDocument\": \"folder1/welcome.md\",\n  \"faviconUrl\": \"uploads/favicons/favicon.ico\",\n  \"customFontUrl\": \"uploads/fonts/myfont.woff2\",\n  \"customFont\": \"NanumGothic\"\n}\n```\n- **siteTitle:** 좌측 상단 및 브라우저 탭에 표시될 사이트 이름입니다.\n- **homeDocument:** 처음 사이트에 접속했을 때 띄울 메인 문서의 경로입니다. (`docs/` 폴더를 기준으로 작성합니다. 예: `welcome.md`)\n- **faviconUrl:** 브라우저 탭에 표시될 아이콘(파비콘) 경로입니다. (웹 주소를 넣거나 `ghp/` 폴더 기준의 경로를 적습니다.)\n- **customFontUrl:** 적용할 폰트 파일의 경로입니다.\n- **customFont:** 폰트의 이름을 임의로 지정합니다. (영문 추천)\n\n*(참고: 테마 모드나 메인 컬러 팔레트 등 개인 취향에 해당하는 설정은 여전히 브라우저의 우측 상단 톱니바퀴 버튼을 눌러 개별 사용자가 설정할 수 있습니다.)*\n\n---\n\n## 3. 기본 사용법 및 매크로 기능\n\n정적 버전에서도 문서 열람, 내부 목차(TOC) 스크롤, 검색 기능은 원본과 동일하게 동작합니다. \n\n특히 마크다운 파일 내에 아래와 같은 매크로 구문을 직접 타이핑해 넣으면 동적 위키와 똑같은 편의 기능을 사용할 수 있습니다.\n\n**1. 리다이렉트 (문서 자동 이동)**\n이전 문서의 주소로 접속한 사람을 새 문서로 강제 이동시킬 때 문서 최상단에 적어둡니다.\n```markdown\n&#123;&#123;REDIRECT:새폴더명/새로운문서.md&#125;&#125;\n```\n\n**2. D-Day 계산기**\n특정 날짜까지 남은 일수나 지난 일수를 자동으로 치환하여 보여줍니다.\n```markdown\n축제까지 &#123;&#123;DAYS_UNTIL:2026-10-31&#125;&#125;일 남았습니다!\n```\n"
+  },
+  {
+    "name": "welcome.md",
+    "path": "welcome.md",
+    "content": "# Welcome to the DB-less Wiki\n\nThis is a modern, fast, and fully customizable wiki system that runs entirely without a database. All your content is stored as simple markdown files in the `docs/` folder, and assets are cleanly organized in `public/uploads/`.\n\n## Key Features\n\n### 1. DB-less Architecture & Markdown Support\n- **Filesystem as Database**: Just create or edit `.md` files in the `docs` folder. The sidebar tree automatically updates!\n- **Rich Markdown**: Supports headers, lists, **bold text**, *italics*, tables, and inline images.\n- **In-Browser Editor**: Log in via the top-right Admin icon to create, edit, and upload images directly from the browser.\n\n### 2. Deep Customization (Settings)\nClick the **Settings (gear) icon** at the top right to personalize your wiki:\n- **Site Title**: Change the top-left title dynamically.\n- **Primary Color**: Use the color picker to completely re-theme the UI using Material 3's dynamic color system.\n- **Custom Fonts**: Upload your own `.ttf` or `.woff` files. They maintain their original filenames and apply globally to the UI and content.\n- **Custom Favicon**: Upload an icon to change the browser tab logo (saved securely in `/uploads/favicons/`).\n\n### 3. Smart Theme Modes & Auto-Schedule\nThe wiki supports Light and Dark modes, but you can also automate it:\n- **System Default**: Follows your OS settings.\n- **Schedule (Time-based)**: Tell the wiki when you want Dark Mode to begin and end (e.g., Start at 18:00, End at 06:00). \n  - *Note: The wiki checks the time every minute and will automatically switch themes even if you just leave the page open!*\n\n### 4. Dynamic Time Macros\nYou can use special macro tags inside any markdown file to automatically calculate dates and times based on the viewer's local clock:\n\n- **`{{NOW}}`**: Displays the current exact time. \n  - *Result*: {{NOW}}\n- **`{{DDAY:YYYY-MM-DD}}`**: Displays a standard D-Day format.\n  - *Example (`{{DDAY:2024-01-01}}`)*: {{DDAY:2024-01-01}}\n  - *Example (`{{DDAY:2099-12-31}}`)*: {{DDAY:2099-12-31}}\n- **`{{DAYS_SINCE:YYYY-MM-DD}}`**: Returns only the number of days passed.\n  - *Example (`{{DAYS_SINCE:2024-01-01}}`)*: {{DAYS_SINCE:2024-01-01}} days ago.\n- **`{{DAYS_UNTIL:YYYY-MM-DD}}`**: Returns only the number of days remaining.\n  - *Example (`{{DAYS_UNTIL:2099-12-31}}`)*: {{DAYS_UNTIL:2099-12-31}} days left.\n\n---\n\n### Code Example\n```javascript\nconsole.log(\"Hello World!\");\n```\n\n### Table\n| Feature | Supported |\n|---------|-----------|\n| SPA Navigation | Yes |\n| Real-time Editing | Yes |\n| Glassmorphism UI | Yes |\n\nEnjoy writing!\n"
+  },
+  {
+    "name": "nested.md",
+    "path": "새 폴더/folder1/nested.md",
+    "content": "# Nested File\nThis is a test of a nested file.\n"
+  },
+  {
+    "name": "merong.md",
+    "path": "새 폴더/folder4/merong.md",
+    "content": "# merong\n\n## 메롱메롱\n메롱\n\n![image](/uploads/images/1780737259068-581144939.jpg)"
+  },
+  {
+    "name": "nullfile.md",
+    "path": "새 폴더/nullfile.md",
+    "content": "# nullfile\n\n"
+  },
+  {
+    "name": "test2.md",
+    "path": "새 폴더/test2.md",
+    "content": "# 이걸 읽을 수 있을까?\n## 이것도 읽을 수 있을까?\n- 메롱\n#[text](url)\n##### 니"
+  },
+  {
+    "name": "testfile.md",
+    "path": "새 폴더/testfile.md",
+    "content": "# testfile\n\n"
+  },
+  {
+    "name": "데이터베이스.md",
+    "path": "새 폴더/US-5A/데이터베이스.md",
+    "content": "알 바야?"
+  },
+  {
+    "name": "운영체제.md",
+    "path": "새 폴더/US-5B/운영체제.md",
+    "content": "# 운영체제 테스트\n## 이번 기말도 화이팅!!\n아자아자"
+  }
+]

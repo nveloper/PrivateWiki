@@ -1,0 +1,105 @@
+[
+  {
+    "type": "folder",
+    "name": "새 폴더",
+    "path": "새 폴더",
+    "children": [
+      {
+        "type": "folder",
+        "name": "folder1",
+        "path": "새 폴더/folder1",
+        "children": [
+          {
+            "type": "file",
+            "name": "nested.md",
+            "path": "새 폴더/folder1/nested.md"
+          }
+        ]
+      },
+      {
+        "type": "folder",
+        "name": "folder2",
+        "path": "새 폴더/folder2",
+        "children": []
+      },
+      {
+        "type": "folder",
+        "name": "folder3",
+        "path": "새 폴더/folder3",
+        "children": []
+      },
+      {
+        "type": "folder",
+        "name": "folder4",
+        "path": "새 폴더/folder4",
+        "children": [
+          {
+            "type": "file",
+            "name": "merong.md",
+            "path": "새 폴더/folder4/merong.md"
+          }
+        ]
+      },
+      {
+        "type": "folder",
+        "name": "something",
+        "path": "새 폴더/something",
+        "children": []
+      },
+      {
+        "type": "folder",
+        "name": "US-5A",
+        "path": "새 폴더/US-5A",
+        "children": [
+          {
+            "type": "file",
+            "name": "데이터베이스.md",
+            "path": "새 폴더/US-5A/데이터베이스.md"
+          }
+        ]
+      },
+      {
+        "type": "folder",
+        "name": "US-5B",
+        "path": "새 폴더/US-5B",
+        "children": [
+          {
+            "type": "file",
+            "name": "운영체제.md",
+            "path": "새 폴더/US-5B/운영체제.md"
+          }
+        ]
+      },
+      {
+        "type": "file",
+        "name": "nullfile.md",
+        "path": "새 폴더/nullfile.md"
+      },
+      {
+        "type": "file",
+        "name": "test2.md",
+        "path": "새 폴더/test2.md"
+      },
+      {
+        "type": "file",
+        "name": "testfile.md",
+        "path": "새 폴더/testfile.md"
+      }
+    ]
+  },
+  {
+    "type": "file",
+    "name": "English Manual.md",
+    "path": "English Manual.md"
+  },
+  {
+    "type": "file",
+    "name": "Korean Manual.md",
+    "path": "Korean Manual.md"
+  },
+  {
+    "type": "file",
+    "name": "welcome.md",
+    "path": "welcome.md"
+  }
+]

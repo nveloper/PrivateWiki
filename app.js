@@ -1,8 +1,11 @@
 import { themeFromSourceColor, applyTheme, argbFromHex } from "https://esm.run/@material/material-color-utilities";
 
-const IS_DEMO_ENV = window.location.hostname.includes('github.io') || window.location.search.includes('demo=true');
-
 document.addEventListener('DOMContentLoaded', () => {
+    // Enable KaTeX support in marked.js
+    if (typeof markedKatex !== 'undefined') {
+        marked.use(markedKatex({ throwOnError: false }));
+    }
+
     const treeContainer = document.getElementById('tree-container');
     const markdownContainer = document.getElementById('markdown-container');
     const sidebar = document.getElementById('sidebar');
@@ -11,8 +14,27 @@ document.addEventListener('DOMContentLoaded', () => {
     let currentPath = new URLSearchParams(window.location.search).get('path') || '';
     let globalTreeData = [];
     let currentMarkdown = '';
-    let authToken = sessionStorage.getItem('authToken') || null;
-    let isEditMode = false;
+
+    // Shared Empty State HTML
+    const getEmptyStateHtml = () => `
+        <h1>Welcome to Wiki</h1>
+        <p>Select a document from the left sidebar to start reading.</p>
+    `;
+
+    function loadHome(historyMode = 'push') {
+        if (globalConfig.homeDocument) {
+            currentPath = globalConfig.homeDocument;
+            if (historyMode === 'push') window.history.pushState({ path: currentPath }, '', `?path=${encodeURIComponent(currentPath)}`);
+            if (historyMode === 'replace') window.history.replaceState({ path: currentPath }, '', `?path=${encodeURIComponent(currentPath)}`);
+            loadContent(currentPath);
+        } else {
+            currentPath = '';
+            if (historyMode === 'push') window.history.pushState({ path: '' }, '', window.location.pathname);
+            if (historyMode === 'replace') window.history.replaceState({ path: '' }, '', window.location.pathname);
+            markdownContainer.innerHTML = getEmptyStateHtml();
+            document.querySelectorAll('.tree-item').forEach(el => el.classList.remove('active'));
+        }
+    }
 
     // Icon Animation Trigger
     function triggerIconAnim(btnId, animClass) {
@@ -59,38 +81,11 @@ document.addEventListener('DOMContentLoaded', () => {
     // Load file tree
     async function loadTree() {
         try {
-            // 상대 경로 기법으로 명확하게 지정 (언더바 파일명 수정)
-            const fetchUrl = IS_DEMO_ENV ? './mock_tree.json' : '/api/tree';
-            const response = await fetch(fetchUrl, IS_DEMO_ENV ? {} : { cache: 'no-store' });
-        
-            // 깃허브 페이지 404 예외 처리 추가 (안전장치)
-            if (IS_DEMO_ENV && !response.ok) {
-                console.error("데모 파일을 찾을 수 없습니다. 경로를 확인하세요.");
-                return;
-            }
-        
+            const response = await fetch('tree.json', { cache: 'no-store' });
             const treeData = await response.json();
             globalTreeData = treeData;
             treeContainer.innerHTML = ''; // Clear existing
             renderTree(treeData, treeContainer);
-            
-            if (authToken) {
-                const rootAddBtn = document.createElement('div');
-                rootAddBtn.className = 'root-add-btn';
-                rootAddBtn.innerHTML = `
-                    <md-text-button style="width:100%; border-radius: 8px;">
-                        <md-icon slot="icon">add</md-icon>
-                        New File / Folder
-                    </md-text-button>
-                `;
-                rootAddBtn.querySelector('md-text-button').addEventListener('click', (e) => {
-                    const rect = e.target.getBoundingClientRect();
-                    lastClickX = rect.left + rect.width / 2;
-                    lastClickY = rect.top + rect.height / 2;
-                    openCreateDialog('');
-                });
-                treeContainer.appendChild(rootAddBtn);
-            }
         } catch (error) {
             console.error('Failed to load tree:', error);
             treeContainer.innerHTML = '<div style="padding: 16px; color: red;">Failed to load navigation.</div>';
@@ -171,48 +166,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 nodeDiv.appendChild(itemDiv);
             }
 
-            // Append hover actions if logged in
-            if (authToken) {
-                const actionsDiv = document.createElement('div');
-                actionsDiv.className = 'tree-actions';
-                
-                if (item.type === 'folder') {
-                    const addBtn = document.createElement('md-icon-button');
-                    addBtn.innerHTML = '<md-icon>add</md-icon>';
-                    addBtn.addEventListener('click', (e) => {
-                        e.stopPropagation();
-                        const rect = e.target.getBoundingClientRect();
-                        lastClickX = rect.left + rect.width / 2;
-                        lastClickY = rect.top + rect.height / 2;
-                        openCreateDialog(item.path);
-                    });
-                    actionsDiv.appendChild(addBtn);
-                }
-                
-                const renameBtn = document.createElement('md-icon-button');
-                renameBtn.innerHTML = '<md-icon>edit</md-icon>';
-                renameBtn.addEventListener('click', (e) => {
-                    e.stopPropagation();
-                    const rect = e.target.getBoundingClientRect();
-                    lastClickX = rect.left + rect.width / 2;
-                    lastClickY = rect.top + rect.height / 2;
-                    openRenameDialog(item.path);
-                });
-                actionsDiv.appendChild(renameBtn);
-
-                const delBtn = document.createElement('md-icon-button');
-                delBtn.innerHTML = '<md-icon>delete</md-icon>';
-                delBtn.addEventListener('click', (e) => {
-                    e.stopPropagation();
-                    const rect = e.target.getBoundingClientRect();
-                    lastClickX = rect.left + rect.width / 2;
-                    lastClickY = rect.top + rect.height / 2;
-                    openDeleteDialog(item.path);
-                });
-                actionsDiv.appendChild(delBtn);
-                itemDiv.appendChild(actionsDiv);
-            }
-
             parentElement.appendChild(nodeDiv);
         });
     }
@@ -258,42 +211,34 @@ document.addEventListener('DOMContentLoaded', () => {
 
     async function loadContent(path) {
         if (!path) return;
+        
         currentPath = path;
+        
+        // Add loading state
         markdownContainer.innerHTML = '<div style="text-align: center; padding: 40px;"><md-circular-progress indeterminate></md-circular-progress></div>';
 
         try {
-            let markdownText = '';
-            let lastModified = Date.now();
-
-            if (IS_DEMO_ENV) {
-                const localSaved = localStorage.getItem(`demo_content_${path}`);
-                if (localSaved !== null) {
-                    markdownText = localSaved;
-                } else {
-                    try {
-                        const response = await fetch(`./docs/${path}`);
-                        if (response.ok) {
-                            markdownText = await response.text();
-                        } else {
-                            const fallbackResponse = await fetch('./mock-content.json');
-                            const fallbackData = await fallbackResponse.json();
-                            markdownText = fallbackData.content || fallbackData;
-                        }
-                    } catch (err) {
-                        const fallbackResponse = await fetch('./mock-content.json');
-                        const fallbackData = await fallbackResponse.json();
-                        markdownText = fallbackData.content || fallbackData;
-                    }
+            // Fetch raw markdown file directly
+            const response = await fetch(`docs/${path}`);
+            
+            if (!response.ok) {
+                throw new Error(response.statusText);
+            }
+            
+            const markdownText = await response.text();
+            
+            // Check for redirect macro: {{REDIRECT:target.md}}
+            const redirectMatch = markdownText.match(/\{\{REDIRECT:([^}]+)\}\}/);
+            if (redirectMatch) {
+                const targetPath = redirectMatch[1].trim();
+                if (path !== targetPath) {
+                    window.history.replaceState({ path: targetPath }, '', `?path=${encodeURIComponent(targetPath)}`);
+                    return loadContent(targetPath);
                 }
-            } else {
-                const response = await fetch(`/api/content?path=${encodeURIComponent(path)}`);
-                if (!response.ok) throw new Error(response.statusText);
-                const data = await response.json();
-                markdownText = data.content || data;
-                lastModified = data.lastModified;
             }
 
             currentMarkdown = markdownText;
+            const lastModified = response.headers.get('Last-Modified') || null;
             
             // Re-render markdown body to trigger CSS animation
             markdownContainer.classList.remove('markdown-body');
@@ -325,11 +270,29 @@ document.addEventListener('DOMContentLoaded', () => {
             const processedText = processTimeMacros(markdownText);
             markdownContainer.innerHTML = breadcrumbsHtml + marked.parse(processedText);
 
+            // SPA routing for internal markdown links
+            markdownContainer.querySelectorAll('a').forEach(a => {
+                const href = a.getAttribute('href');
+                if (href && href.includes('?path=')) {
+                    a.addEventListener('click', (e) => {
+                        e.preventDefault();
+                        const targetPath = new URLSearchParams(href.split('?')[1]).get('path');
+                        if (targetPath) {
+                            window.history.pushState({ path: targetPath }, '', href);
+                            loadContent(targetPath);
+                            currentPath = targetPath;
+                            loadTree();
+                        }
+                    });
+                }
+            });
+
             // Add click listeners to breadcrumbs
             const homeLink = markdownContainer.querySelector('.breadcrumb-home');
             if (homeLink) {
                 homeLink.addEventListener('click', () => {
-                    window.location.href = '/';
+                    window.history.pushState({ path: '' }, '', window.location.pathname);
+                    loadHome('replace');
                 });
             }
             
@@ -352,9 +315,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 `;
                 markdownContainer.insertAdjacentHTML('beforeend', footerHtml);
             }
-            
-            // Check auth state
-            updateAuthUI();
 
             // Scroll to top
             document.getElementById('main-content').scrollTop = 0;
@@ -381,15 +341,17 @@ document.addEventListener('DOMContentLoaded', () => {
             currentPath = path;
             loadTree();
         } else {
-            markdownContainer.innerHTML = `
-                <h1>Welcome to Wiki</h1>
-                <p>Select a document from the left sidebar to start reading.</p>
-            `;
-            currentPath = '';
+            loadHome('none');
             loadTree();
         }
     });
 
+    // Initial Load
+    loadSettings();
+    loadTree();
+    if (currentPath) {
+        loadContent(currentPath);
+    }
 
     // Header buttons logic
     const searchBtn = document.getElementById('search-btn');
@@ -399,13 +361,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const closeSearchBtn = document.getElementById('close-search-btn');
 
     document.getElementById('app-title').addEventListener('click', () => {
-        currentPath = '';
-        window.history.pushState({ path: '' }, '', '/');
-        markdownContainer.innerHTML = `
-            <h1>Welcome to Wiki</h1>
-            <p>Select a document from the left sidebar to start reading.</p>
-        `;
-        document.querySelectorAll('.tree-item').forEach(el => el.classList.remove('active'));
+        loadHome('push');
     });
 
     searchBtn.addEventListener('click', () => {
@@ -433,42 +389,24 @@ document.addEventListener('DOMContentLoaded', () => {
         searchTimeout = setTimeout(async () => {
             searchResults.innerHTML = '<div style="padding:16px; text-align:center;">Searching...</div>';
             try {
-                let data = [];
-                if (IS_DEMO_ENV) {
-                    // 데모 모드 클라이언트 사이드 검색 구현
-                    const docs = [
-                        { path: 'welcome.md', name: 'Welcome', file: './docs/welcome.md' },
-                        { path: 'demo-folder/sample1.md', name: 'Korean', file: './docs/demo-folder/sample1.md' }
-                    ];
-                    for (const doc of docs) {
-                        try {
-                            const localSaved = localStorage.getItem(`demo_content_${doc.path}`);
-                            let text = '';
-                            if (localSaved !== null) {
-                                text = localSaved;
-                            } else {
-                                const response = await fetch(doc.file);
-                                if (response.ok) text = await response.text();
-                            }
-                            if (text.toLowerCase().includes(query.toLowerCase()) || doc.name.toLowerCase().includes(query.toLowerCase())) {
-                                const index = text.toLowerCase().indexOf(query.toLowerCase());
-                                const start = Math.max(0, index - 30);
-                                const end = Math.min(text.length, index + query.length + 30);
-                                const snippet = index !== -1 
-                                    ? (start > 0 ? '...' : '') + text.substring(start, end).replace(/\n/g, ' ') + (end < text.length ? '...' : '')
-                                    : 'Matched in title';
-                                data.push({
-                                    path: doc.path,
-                                    name: doc.name,
-                                    snippet: snippet
-                                });
-                            }
-                        } catch(e) {}
+                const res = await fetch('search_index.json', { cache: 'no-store' });
+                const allData = await res.json();
+                
+                const qLower = query.toLowerCase();
+                const data = allData.filter(item => 
+                    item.name.toLowerCase().includes(qLower) || 
+                    item.content.toLowerCase().includes(qLower)
+                ).map(item => {
+                    // Create snippet
+                    const matchIdx = item.content.toLowerCase().indexOf(qLower);
+                    let snippet = '';
+                    if (matchIdx !== -1) {
+                        const start = Math.max(0, matchIdx - 40);
+                        const end = Math.min(item.content.length, matchIdx + query.length + 40);
+                        snippet = (start > 0 ? '...' : '') + item.content.substring(start, end).replace(/</g, '&lt;') + (end < item.content.length ? '...' : '');
                     }
-                } else {
-                    const res = await fetch(`/api/search?q=${encodeURIComponent(query)}`);
-                    data = await res.json();
-                }
+                    return { ...item, snippet };
+                }).slice(0, 20);
                 
                 if (data.length === 0) {
                     searchResults.innerHTML = '<div style="padding:16px; text-align:center;">No results found.</div>';
@@ -549,235 +487,12 @@ document.addEventListener('DOMContentLoaded', () => {
     const colorChips = document.querySelectorAll('.color-chip');
     const nativeColorPicker = document.getElementById('native-color-picker');
     const colorValue = document.getElementById('color-value');
-    const fontSelect = document.getElementById('font-select');
-    const fontUploadInput = document.getElementById('font-upload-input');
-    const fontUploadStatus = document.getElementById('font-upload-status');
-    const faviconSelect = document.getElementById('favicon-select');
-    const faviconUploadInput = document.getElementById('favicon-upload-input');
-    const faviconUploadStatus = document.getElementById('favicon-upload-status');
     const saveSettingsBtn = document.getElementById('save-settings-btn');
-
-    const imageUploadBtn = document.getElementById('image-upload-btn');
-    const imageUploadDialog = document.getElementById('image-upload-dialog');
-    const imageUploadInput = document.getElementById('image-upload-input');
-    const doImageUploadBtn = document.getElementById('do-image-upload-btn');
-    const imageResultContainer = document.getElementById('image-result-container');
-    const imageMarkdownResult = document.getElementById('image-markdown-result');
-
-    // --- Auth & Edit ---
-    const loginBtn = document.getElementById('login-btn');
-    const loginDialog = document.getElementById('login-dialog');
-    const loginIdInput = document.getElementById('login-id-input');
-    const loginPwInput = document.getElementById('login-pw-input');
-    const doLoginBtn = document.getElementById('do-login-btn');
-    const editBtn = document.getElementById('edit-btn');
-
-    function updateAuthUI() {
-        if (authToken) {
-            loginBtn.innerHTML = '<md-icon>logout</md-icon>';
-            loginBtn.title = 'Logout';
-            if (currentPath) {
-                editBtn.style.display = 'inline-flex';
-            } else {
-                editBtn.style.display = 'none';
-            }
-        } else {
-            loginBtn.innerHTML = '<md-icon>account_circle</md-icon>';
-            loginBtn.title = 'Admin Login';
-            editBtn.style.display = 'none';
-            imageUploadBtn.style.display = 'none';
-        }
-        loadTree(); // Refresh tree to show/hide add/delete icons
-    }
-
-    loginBtn.addEventListener('click', () => {
-        triggerIconAnim('login-btn', 'icon-anim-pop');
-        if (authToken) {
-            authToken = null;
-            sessionStorage.removeItem('authToken');
-            updateAuthUI();
-            if (isEditMode) {
-                isEditMode = false;
-                loadContent(currentPath);
-            }
-        } else {
-            loginIdInput.value = '';
-            loginPwInput.value = '';
-            loginDialog.show();
-        }
-    });
-
-    // Trigger login on Enter key
-    const triggerLoginOnEnter = (e) => {
-        if (e.key === 'Enter') {
-            e.preventDefault();
-            doLoginBtn.click();
-        }
-    };
-    loginIdInput.addEventListener('keydown', triggerLoginOnEnter);
-    loginPwInput.addEventListener('keydown', triggerLoginOnEnter);
-
-    doLoginBtn.addEventListener('click', async (e) => {
-        e.preventDefault();
-        if (IS_DEMO_ENV) {
-            // 데모 모드에서는 아무 계정으로나 모의 로그인 허용
-            authToken = 'demo-token';
-            sessionStorage.setItem('authToken', authToken);
-            loginDialog.close();
-            updateAuthUI();
-            alert('logged in with demo. (Any Changes you make will not applied permanently.)');
-            return;
-        }
-        try {
-            const res = await fetch('/api/login', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ id: loginIdInput.value, password: loginPwInput.value })
-            });
-            const data = await res.json();
-            if (data.success) {
-                authToken = data.token;
-                sessionStorage.setItem('authToken', authToken);
-                loginDialog.close();
-                updateAuthUI();
-            } else {
-                alert('Login failed: ' + data.error);
-            }
-        } catch (err) {
-            alert('Login error');
-        }
-    });
-
-    editBtn.addEventListener('click', () => {
-        isEditMode = true;
-        editBtn.style.display = 'none';
-        imageUploadBtn.style.display = 'inline-flex';
-
-        markdownContainer.innerHTML = `
-            <div class="edit-actions" style="margin-bottom: 16px; display:flex; justify-content: space-between; align-items: center;">
-                <div class="editor-toolbar" style="display:flex; gap: 4px; flex-wrap: wrap;">
-                    <md-icon-button class="format-btn" data-format="**" title="Bold"><md-icon>format_bold</md-icon></md-icon-button>
-                    <md-icon-button class="format-btn" data-format="*" title="Italic"><md-icon>format_italic</md-icon></md-icon-button>
-                    <md-icon-button class="format-btn" data-prefix="## " title="Heading 2"><md-icon>format_h2</md-icon></md-icon-button>
-                    <md-icon-button class="format-btn" data-prefix="### " title="Heading 3"><md-icon>format_h3</md-icon></md-icon-button>
-                    <md-icon-button class="format-btn" data-format="[link](url)" title="Link"><md-icon>link</md-icon></md-icon-button>
-                    <md-icon-button class="format-btn" data-prefix="- " title="List"><md-icon>format_list_bulleted</md-icon></md-icon-button>
-                </div>
-                <div style="display:flex; gap: 8px;">
-                    <md-text-button id="edit-cancel-btn">Cancel</md-text-button>
-                    <md-filled-button id="edit-save-btn">Save</md-filled-button>
-                </div>
-            </div>
-            <div class="editor-split-pane">
-                <md-outlined-text-field type="textarea" id="edit-textarea" label="Edit Markdown Document" style="width: 100%; height: 70vh; --md-outlined-text-field-container-shape: 12px;">
-                </md-outlined-text-field>
-                <div id="live-preview-pane" class="markdown-body"></div>
-            </div>
-        `;
-        
-        const textarea = document.getElementById('edit-textarea');
-        const previewPane = document.getElementById('live-preview-pane');
-        textarea.value = currentMarkdown;
-        previewPane.innerHTML = marked.parse(currentMarkdown);
-
-        // Live Preview update
-        textarea.addEventListener('input', () => {
-            previewPane.innerHTML = marked.parse(textarea.value);
-        });
-
-        // Toolbar formatting
-        document.querySelectorAll('.format-btn').forEach(btn => {
-            btn.addEventListener('click', () => {
-                const format = btn.getAttribute('data-format');
-                const prefix = btn.getAttribute('data-prefix');
-                // The md-outlined-text-field element is a web component, we need its inner textarea
-                const innerTextarea = textarea.shadowRoot ? textarea.shadowRoot.querySelector('textarea') : textarea;
-                
-                let start = textarea.value.length;
-                let end = textarea.value.length;
-                if (innerTextarea && typeof innerTextarea.selectionStart !== 'undefined') {
-                    start = innerTextarea.selectionStart;
-                    end = innerTextarea.selectionEnd;
-                }
-
-                const val = textarea.value;
-                let newVal = val;
-                
-                if (format) {
-                    if (format.includes('link')) {
-                        newVal = val.substring(0, start) + '[text](url)' + val.substring(end);
-                    } else {
-                        const selectedText = val.substring(start, end) || 'text';
-                        newVal = val.substring(0, start) + format + selectedText + format + val.substring(end);
-                    }
-                } else if (prefix) {
-                    let lineStart = val.lastIndexOf('\n', start - 1);
-                    lineStart = lineStart === -1 ? 0 : lineStart + 1;
-                    newVal = val.substring(0, lineStart) + prefix + val.substring(lineStart);
-                }
-
-                textarea.value = newVal;
-                previewPane.innerHTML = marked.parse(textarea.value);
-            });
-        });
-
-        document.getElementById('edit-cancel-btn').addEventListener('click', () => {
-            isEditMode = false;
-            imageUploadBtn.style.display = 'none';
-            loadContent(currentPath);
-        });
-
-        document.getElementById('edit-save-btn').addEventListener('click', async () => {
-            const newContent = document.getElementById('edit-textarea').value;
-            if (IS_DEMO_ENV) {
-                localStorage.setItem(`demo_content_${currentPath}`, newContent);
-                alert('데모 모드: 변경사항이 브라우저 로컬 스토리지에 임시 저장되었습니다.');
-                isEditMode = false;
-                imageUploadBtn.style.display = 'none';
-                loadContent(currentPath);
-                return;
-            }
-            try {
-                const res = await fetch('/api/content', {
-                    method: 'POST',
-                    headers: { 
-                        'Content-Type': 'application/json',
-                        'Authorization': 'Bearer ' + authToken
-                    },
-                    body: JSON.stringify({ path: currentPath, content: newContent })
-                });
-                const data = await res.json();
-                if (data.success) {
-                    isEditMode = false;
-                    imageUploadBtn.style.display = 'none';
-                    loadContent(currentPath);
-                } else {
-                    alert('Save failed: ' + data.error);
-                }
-            } catch (err) {
-                alert('Save error');
-            }
-        });
-    });
-
-    let currentSettings = { primaryColor: '#6750A4', customFont: null, customFontUrl: null, themeMode: 'system', siteTitle: 'DB-less Wiki', faviconUrl: null, darkModeStart: '18:00', darkModeEnd: '06:00' };
-    const siteTitleInput = document.getElementById('site-title-input');
+    let currentSettings = { primaryColor: '#6750A4', themeMode: 'system', darkModeStart: '18:00', darkModeEnd: '06:00' };
+    let globalConfig = { siteTitle: 'DB-less Wiki', homeDocument: '', faviconUrl: '', customFontUrl: '', customFont: '' };
     const appTitle = document.getElementById('app-title');
     const pageTitle = document.getElementById('page-title');
     const pageFavicon = document.getElementById('page-favicon');
-
-    const imageUploadStatus = document.getElementById('image-upload-status');
-
-    // Update status text when files are selected
-    fontUploadInput.addEventListener('change', (e) => {
-        fontUploadStatus.textContent = e.target.files.length > 0 ? e.target.files[0].name : 'No file selected';
-    });
-    faviconUploadInput.addEventListener('change', (e) => {
-        faviconUploadStatus.textContent = e.target.files.length > 0 ? e.target.files[0].name : 'No file selected';
-    });
-    imageUploadInput.addEventListener('change', (e) => {
-        imageUploadStatus.textContent = e.target.files.length > 0 ? e.target.files[0].name : 'No file selected';
-    });
 
     function updateTheme() {
         const isDark = getIsDark(currentSettings.themeMode || 'system');
@@ -848,6 +563,17 @@ document.addEventListener('DOMContentLoaded', () => {
     colorPickerTrigger.addEventListener('click', () => {
         customHexInput.value = currentSettings.primaryColor || '#6750A4';
         colorPaletteMenu.open = true;
+        
+        setTimeout(() => {
+            if (colorPaletteMenu.shadowRoot) {
+                const sheet = new CSSStyleSheet();
+                sheet.replaceSync('* { backdrop-filter: blur(10px) !important; -webkit-backdrop-filter: blur(10px) !important; }');
+                const sheets = [...colorPaletteMenu.shadowRoot.adoptedStyleSheets];
+                if (!sheets.some(s => s.cssRules.length > 0 && s.cssRules[0].cssText.includes('blur(10px)'))) {
+                    colorPaletteMenu.shadowRoot.adoptedStyleSheets = [...sheets, sheet];
+                }
+            }
+        }, 50);
     });
 
     function applyColorSelection(hexColor) {
@@ -892,104 +618,30 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         document.getElementById('dark-mode-start').value = currentSettings.darkModeStart || '18:00';
         document.getElementById('dark-mode-end').value = currentSettings.darkModeEnd || '06:00';
-        siteTitleInput.value = currentSettings.siteTitle || 'DB-less Wiki';
-        fontUploadInput.value = '';
-        fontUploadStatus.textContent = 'No file selected';
-        if (typeof faviconUploadInput !== 'undefined') {
-            faviconUploadInput.value = '';
-            if(faviconUploadStatus) faviconUploadStatus.textContent = 'No file selected';
-        }
-
-        try {
-            const resFonts = IS_DEMO_ENV ? { ok: true, json: async () => ({ files: [] }) } : await fetch('/api/uploads/fonts');
-            if (resFonts.ok) {
-                const data = await resFonts.json();
-                let html = '<md-select-option value=""><div slot="headline">Default System Font</div></md-select-option>';
-                data.files.forEach(f => {
-                    const name = f.split('/').pop();
-                    const selected = (currentSettings.customFontUrl === f) ? 'selected' : '';
-                    html += `<md-select-option value="${f}" ${selected}><div slot="headline">${name}</div></md-select-option>`;
-                });
-                const oldFontSelect = document.getElementById('font-select');
-                if (oldFontSelect) {
-                    const newFontSelect = document.createElement('md-outlined-select');
-                    newFontSelect.id = 'font-select';
-                    newFontSelect.setAttribute('label', 'Choose Font');
-                    newFontSelect.innerHTML = html;
-                    oldFontSelect.replaceWith(newFontSelect);
-                    
-                    // Inject blur effect into shadow root for the menu
-                    setTimeout(() => {
-                        if (newFontSelect.shadowRoot) {
-                            const menu = newFontSelect.shadowRoot.querySelector('md-menu');
-                            if (menu && menu.shadowRoot) {
-                                const sheet = new CSSStyleSheet();
-                                sheet.replaceSync('* { backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); }');
-                                menu.shadowRoot.adoptedStyleSheets = [...menu.shadowRoot.adoptedStyleSheets, sheet];
-                            }
-                        }
-                    }, 50);
-                }
-            }
-            const resImages = IS_DEMO_ENV ? { ok: true, json: async () => ({ files: [] }) } : await fetch('/api/uploads/favicons');
-            if (resImages.ok) {
-                const data = await resImages.json();
-                let html = '<md-select-option value=""><div slot="headline">Default (None)</div></md-select-option>';
-                data.files.forEach(f => {
-                    const name = f.split('/').pop();
-                    const selected = (currentSettings.faviconUrl === f) ? 'selected' : '';
-                    html += `<md-select-option value="${f}" ${selected}><div slot="headline">${name}</div></md-select-option>`;
-                });
-                const oldFaviconSelect = document.getElementById('favicon-select');
-                if (oldFaviconSelect) {
-                    const newFaviconSelect = document.createElement('md-outlined-select');
-                    newFaviconSelect.id = 'favicon-select';
-                    newFaviconSelect.setAttribute('label', 'Choose Favicon');
-                    newFaviconSelect.innerHTML = html;
-                    oldFaviconSelect.replaceWith(newFaviconSelect);
-
-                    // Inject blur effect into shadow root for the menu
-                    setTimeout(() => {
-                        if (newFaviconSelect.shadowRoot) {
-                            const menu = newFaviconSelect.shadowRoot.querySelector('md-menu');
-                            if (menu && menu.shadowRoot) {
-                                const sheet = new CSSStyleSheet();
-                                sheet.replaceSync('* { backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); }');
-                                menu.shadowRoot.adoptedStyleSheets = [...menu.shadowRoot.adoptedStyleSheets, sheet];
-                            }
-                        }
-                    }, 50);
-                }
-            }
-        } catch(e) {}
 
         settingsDialog.show();
     });
 
-    imageUploadBtn.addEventListener('click', () => {
-        imageUploadInput.value = '';
-        imageUploadStatus.textContent = 'No file selected';
-        imageResultContainer.style.display = 'none';
-        imageMarkdownResult.value = '';
-        doImageUploadBtn.innerHTML = 'Upload';
-        doImageUploadBtn.dataset.state = 'upload';
-        imageUploadDialog.show();
-    });
-
     async function loadSettings() {
         try {
-            const fetchUrl = IS_DEMO_ENV ? './mock_settings.json' : '/api/settings';
-            const response = await fetch(fetchUrl);
-            currentSettings = Object.assign(currentSettings, await response.json());
-            localStorage.setItem('siteConfig', JSON.stringify(currentSettings));
-            if (currentSettings.customFontUrl) applyFont(currentSettings.customFont, currentSettings.customFontUrl);
-            applySiteTitle(currentSettings.siteTitle);
-            applyFavicon(currentSettings.faviconUrl);
-            updateTheme();
-        } catch (e) {
-            console.error('Failed to load settings', e);
-            updateTheme(); // apply defaults
-        }
+            const res = await fetch('settings.json', { cache: 'no-store' });
+            globalConfig = Object.assign(globalConfig, await res.json());
+        } catch(e) {}
+        
+        try {
+            const localConfig = JSON.parse(localStorage.getItem('siteConfig'));
+            if (localConfig) {
+                currentSettings.primaryColor = localConfig.primaryColor || currentSettings.primaryColor;
+                currentSettings.themeMode = localConfig.themeMode || currentSettings.themeMode;
+                currentSettings.darkModeStart = localConfig.darkModeStart || currentSettings.darkModeStart;
+                currentSettings.darkModeEnd = localConfig.darkModeEnd || currentSettings.darkModeEnd;
+            }
+        } catch(e) {}
+
+        if (globalConfig.customFontUrl) applyFont(globalConfig.customFont, globalConfig.customFontUrl);
+        applySiteTitle(globalConfig.siteTitle);
+        applyFavicon(globalConfig.faviconUrl);
+        updateTheme();
     }
 
     function applySiteTitle(title) {
@@ -1027,351 +679,23 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     saveSettingsBtn.addEventListener('click', async () => {
-        if (IS_DEMO_ENV && (fontUploadInput.files.length > 0 || faviconUploadInput.files.length > 0)) {
-            alert('데모 모드에서는 폰트/파비콘 파일 업로드를 지원하지 않습니다.');
-            return;
-        }
-
         currentSettings.primaryColor = customHexInput.value;
         currentSettings.themeMode = themeModeSelect.value;
         currentSettings.darkModeStart = document.getElementById('dark-mode-start').value || '18:00';
         currentSettings.darkModeEnd = document.getElementById('dark-mode-end').value || '06:00';
-        currentSettings.siteTitle = siteTitleInput.value || 'DB-less Wiki';
-        applySiteTitle(currentSettings.siteTitle);
         updateTheme();
 
-        // Upload font if selected
-        if (fontUploadInput.files.length > 0) {
-            const file = fontUploadInput.files[0];
-            const formData = new FormData();
-            formData.append('font', file);
-            
-            fontUploadStatus.textContent = 'Uploading font...';
-            try {
-                const res = await fetch('/api/upload/font', { 
-                    method: 'POST', 
-                    headers: { 'Authorization': `Bearer ${authToken}` },
-                    body: formData 
-                });
-                if (res.status === 401) {
-                    alert('Session expired. Please log in again.');
-                    return;
-                }
-                const data = await res.json();
-                if (res.ok && data.success) {
-                    currentSettings.customFontUrl = data.url;
-                    currentSettings.customFont = 'CustomFont_' + Date.now();
-                    applyFont(currentSettings.customFont, currentSettings.customFontUrl);
-                    fontUploadStatus.textContent = 'Font uploaded successfully!';
-                } else {
-                    fontUploadStatus.textContent = 'Upload failed: ' + (data.error || '');
-                }
-            } catch (e) {
-                fontUploadStatus.textContent = 'Upload failed.';
-            }
-        } else {
-            const currentFontSelect = document.getElementById('font-select');
-            currentSettings.customFontUrl = currentFontSelect ? currentFontSelect.value : null;
-            if (currentSettings.customFontUrl) {
-                currentSettings.customFont = 'CustomFont_' + currentSettings.customFontUrl.split('/').pop().replace(/\W/g, '');
-                applyFont(currentSettings.customFont, currentSettings.customFontUrl);
-            } else {
-                currentSettings.customFont = null;
-            }
-        }
-
-        // Upload favicon if selected
-        if (faviconUploadInput.files.length > 0) {
-            const formData = new FormData();
-            formData.append('favicon', faviconUploadInput.files[0]);
-            
-            faviconUploadStatus.textContent = 'Uploading favicon...';
-            try {
-                const res = await fetch('/api/upload/favicon', { 
-                    method: 'POST', 
-                    headers: { 'Authorization': `Bearer ${authToken}` },
-                    body: formData 
-                });
-                if (res.status === 401) {
-                    alert('Session expired. Please log in again.');
-                    return;
-                }
-                const data = await res.json();
-                if (res.ok && data.success) {
-                    currentSettings.faviconUrl = data.url;
-                    applyFavicon(data.url);
-                    faviconUploadStatus.textContent = 'Uploaded successfully!';
-                } else {
-                    faviconUploadStatus.textContent = 'Upload failed: ' + (data.error || '');
-                }
-            } catch (e) {
-                faviconUploadStatus.textContent = 'Upload failed.';
-            }
-        } else {
-            const currentFaviconSelect = document.getElementById('favicon-select');
-            currentSettings.faviconUrl = currentFaviconSelect ? currentFaviconSelect.value : null;
-            applyFavicon(currentSettings.faviconUrl || '');
-        }
-
-        // Save settings to server and local storage
+        // Save settings to local storage
         try {
             localStorage.setItem('siteConfig', JSON.stringify(currentSettings));
-            if (IS_DEMO_ENV) {
-                alert('Demo Settings are temporarily saved in the browser.');
-                settingsDialog.close();
-                return;
-            }
-            const res = await fetch('/api/settings', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${authToken}` },
-                body: JSON.stringify(currentSettings)
-            });
-            if (res.status === 401) {
-                alert('Session expired. Please log in again to save settings.');
-                return;
-            }
-            if (res.ok) {
-                settingsDialog.close();
-            } else {
-                const data = await res.json();
-                alert('Failed to save settings: ' + data.error);
-            }
+            settingsDialog.close();
         } catch (e) {
             console.error('Failed to save settings', e);
             alert('Failed to save settings.');
         }
     });
 
-    doImageUploadBtn.addEventListener('click', async (e) => {
-        e.preventDefault();
 
-        if (doImageUploadBtn.dataset.state === 'ok') {
-            await playCloseAnim(imageUploadDialog);
-            imageUploadDialog.close();
-            return;
-        }
-
-        if (imageUploadInput.files.length === 0) return;
-        
-        if (IS_DEMO_ENV) {
-            alert('Image upload is not available in demo.');
-            return;
-        }
-
-        const file = imageUploadInput.files[0];
-        const formData = new FormData();
-        formData.append('image', file);
-
-        doImageUploadBtn.disabled = true;
-        try {
-            const res = await fetch('/api/upload/image', { 
-                method: 'POST', 
-                headers: { 'Authorization': `Bearer ${authToken}` },
-                body: formData 
-            });
-            const data = await res.json();
-            if (data.success) {
-                imageResultContainer.style.display = 'block';
-                imageMarkdownResult.value = data.markdown;
-
-                try {
-                    await navigator.clipboard.writeText(data.markdown);
-                    alert('Copied to clipboard!');
-                } catch(e) {}
-
-                doImageUploadBtn.innerHTML = 'OK';
-                doImageUploadBtn.dataset.state = 'ok';
-            }
-        } catch (err) {
-            alert('Image upload failed.');
-        } finally {
-            doImageUploadBtn.disabled = false;
-        }
-    });
-
-    imageMarkdownResult.addEventListener('click', () => {
-        imageMarkdownResult.select();
-        navigator.clipboard.writeText(imageMarkdownResult.value)
-            .then(() => alert('Copied to clipboard!'));
-    });
-
-    // --- File/Folder Management Logic ---
-    let currentActionPath = '';
-    const createItemDialog = document.getElementById('create-item-dialog');
-    const createItemForm = document.getElementById('create-item-form');
-    const createNameInput = document.getElementById('create-item-name-input');
-    const createTypeToggle = document.getElementById('create-type-toggle');
-
-    const deleteConfirmDialog = document.getElementById('delete-confirm-dialog');
-    const deleteConfirmForm = document.getElementById('delete-confirm-form');
-    const deleteConfirmText = document.getElementById('delete-confirm-text');
-
-    function openCreateDialog(targetPath) {
-        currentActionPath = targetPath;
-        createNameInput.value = '';
-        createItemDialog.show();
-    }
-
-    function openDeleteDialog(targetPath) {
-        currentActionPath = targetPath;
-        deleteConfirmText.textContent = `Are you sure you want to delete "${targetPath.split('/').pop()}"?`;
-        deleteConfirmDialog.show();
-    }
-
-    const renameItemDialog = document.getElementById('rename-item-dialog');
-    const renameItemForm = document.getElementById('rename-item-form');
-    const renameItemInput = document.getElementById('rename-item-input');
-
-    function openRenameDialog(targetPath) {
-        currentActionPath = targetPath;
-        renameItemInput.value = targetPath.split('/').pop().replace(/\.md$/i, '');
-        renameItemDialog.show();
-    }
-
-    renameItemForm.addEventListener('submit', async (e) => {
-        if (e.submitter && e.submitter.id === 'do-rename-btn') {
-            e.preventDefault();
-            if (IS_DEMO_ENV) {
-                alert('File/Folder change is not available in demo.');
-                return;
-            }
-            const newName = renameItemInput.value.trim();
-            if (!newName) return alert('Name required');
-
-            try {
-                const res = await fetch('/api/rename', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${authToken}` },
-                    body: JSON.stringify({ oldPath: currentActionPath, newName })
-                });
-
-                if (res.status === 401) return alert('Session expired.');
-
-                const data = await res.json();
-                if (res.ok && data.success) {
-                    await playCloseAnim(renameItemDialog);
-                    renameItemDialog.close();
-                    
-                    // If current viewed path was renamed or was inside the renamed folder
-                    if (currentPath === currentActionPath || currentPath.startsWith(currentActionPath + '/')) {
-                        currentPath = '';
-                        window.history.pushState({ path: '' }, '', '/');
-                        markdownContainer.innerHTML = '<h1>Document renamed</h1><p>Please select it again from the sidebar.</p>';
-                    }
-                    
-                    loadTree();
-                } else {
-                    alert('Error: ' + (data.error || 'Unknown error'));
-                }
-            } catch (err) {
-                alert('Request failed: ' + err.message);
-            }
-        }
-    });
-
-    createItemForm.addEventListener('submit', async (e) => {
-        // Only handle our custom Create button click, let Cancel natively close
-        if (e.submitter && e.submitter.id === 'do-create-item-btn') {
-            e.preventDefault();
-            if (IS_DEMO_ENV) {
-                alert('File/Folder change is not available in demo.');
-                return;
-            }
-            const name = createNameInput.value.trim();
-            if (!name) return alert('Name required');
-            
-            const typeRadio = document.querySelector('input[name="item-type"]:checked');
-            const type = typeRadio ? typeRadio.value : 'folder';
-            
-            const apiPath = type === 'folder' ? '/api/create/folder' : '/api/create/file';
-            
-            try {
-                const res = await fetch(apiPath, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${authToken}` },
-                    body: JSON.stringify({ path: currentActionPath, name })
-                });
-                
-                if (res.status === 401) {
-                    alert('Session expired. Please log in again.');
-                    return;
-                }
-                
-                if (!res.ok) {
-                    const text = await res.text();
-                    try {
-                        const json = JSON.parse(text);
-                        alert('Error: ' + json.error);
-                    } catch(e) {
-                        alert('Server error: ' + text.substring(0, 50));
-                    }
-                    return;
-                }
-                
-                const data = await res.json();
-                if (data.success) {
-                    await playCloseAnim(createItemDialog);
-                    createItemDialog.close();
-                    loadTree();
-                } else {
-                    alert('Error: ' + data.error);
-                }
-            } catch(err) {
-                alert('Request failed: ' + err.message);
-            }
-        }
-    });
-
-    deleteConfirmForm.addEventListener('submit', async (e) => {
-        if (e.submitter && e.submitter.id === 'do-delete-btn') {
-            e.preventDefault();
-            if (IS_DEMO_ENV) {
-                alert('File/Folder change is not available in demo.');
-                return;
-            }
-            try {
-                const res = await fetch('/api/delete', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${authToken}` },
-                    body: JSON.stringify({ path: currentActionPath })
-                });
-                
-                if (res.status === 401) {
-                    alert('Session expired. Please log in again.');
-                    return;
-                }
-
-                if (!res.ok) {
-                    const text = await res.text();
-                    try {
-                        const json = JSON.parse(text);
-                        alert('Error: ' + json.error);
-                    } catch(e) {
-                        alert('Server error: ' + text.substring(0, 50));
-                    }
-                    return;
-                }
-
-                const data = await res.json();
-                if (data.success) {
-                    await playCloseAnim(deleteConfirmDialog);
-                    deleteConfirmDialog.close();
-                    
-                    if (currentPath === currentActionPath || currentPath.startsWith(currentActionPath + '/')) {
-                        currentPath = '';
-                        window.history.pushState({ path: '' }, '', '/');
-                        document.getElementById('app-title').click();
-                    } else {
-                        loadTree();
-                    }
-                } else {
-                    alert('Error: ' + data.error);
-                }
-            } catch(err) {
-                alert('Request failed: ' + err.message);
-            }
-        }
-    });
 
     // Record last clicked coordinate for dialog pop origin
     let lastClickX = 0;
@@ -1434,6 +758,18 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Custom Mobile-App Style Pop Animations for Dialogs (Intercepts the 'quick' instant open)
     document.querySelectorAll('md-dialog').forEach(mdDialog => {
+        // Override the close method to inject our animation
+        const originalClose = mdDialog.close.bind(mdDialog);
+        mdDialog.close = async function(returnValue) {
+            if (this.open && !this._isClosing) {
+                this._isClosing = true;
+                await playCloseAnim(this);
+                originalClose(returnValue);
+                this._isClosing = false;
+            } else if (!this.open && !this._isClosing) {
+                originalClose(returnValue);
+            }
+        };
         mdDialog.addEventListener('open', () => {
             const nativeDialog = mdDialog.shadowRoot.querySelector('.dialog') || mdDialog.shadowRoot.querySelector('dialog');
             
@@ -1464,10 +800,9 @@ document.addEventListener('DOMContentLoaded', () => {
         });
 
         // Intercept cancel event (Escape key or scrim click)
-        mdDialog.addEventListener('cancel', async (e) => {
+        mdDialog.addEventListener('cancel', (e) => {
             e.preventDefault();
-            await playCloseAnim(mdDialog);
-            mdDialog.close();
+            mdDialog.close(); // Triggers our overridden close with animation
         });
     });
 
@@ -1502,15 +837,8 @@ document.addEventListener('DOMContentLoaded', () => {
         await animFinished;
     }
 
-    // Intercept form submissions inside dialogs to play reverse animation before closing
-    document.querySelectorAll('form[method="dialog"]').forEach(form => {
-        form.addEventListener('submit', async (e) => {
-            e.preventDefault(); // Stop native instant close
-            const mdDialog = form.closest('md-dialog');
-            await playCloseAnim(mdDialog);
-            mdDialog.close(); // Manually close after animation
-        });
-    });
+    // Note: form[method="dialog"] submissions are now handled naturally because 
+    // MWC md-dialog internally calls .close(), which we have overridden above.
 
     // Scroll to Top and Pill FAB Logic
     const pillFabContainer = document.querySelector('.pill-fab-container');
@@ -1594,17 +922,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Initial Load
     async function init() {
-        updateAuthUI();
         await loadSettings();
         await loadTree();
 
         if (currentPath) {
             loadContent(currentPath);
         } else {
-            markdownContainer.innerHTML = `
-                <h1>Welcome to Wiki</h1>
-                <p>Select a document from the left sidebar to start reading.</p>
-            `;
+            loadHome('replace');
         }
     }
     

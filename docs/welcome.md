@@ -1,6 +1,6 @@
-# Welcome to the Private Wiki
+# Welcome to the Private Wiki Lite!
 
-This is a modern, fast, and fully customizable wiki system that runs entirely without a database. All your content is stored as simple markdown files in the `docs/` folder, and assets are cleanly organized in `public/uploads/`.
+This is a modern, fast, and fully customizable wiki system that runs entirely without a database. All your content is stored as simple markdown files in the `docs/` folder, and assets are cleanly organized in `assets/`.
 
 ## Key Features
 
@@ -14,7 +14,7 @@ Click the **Settings (gear) icon** at the top right to personalize your wiki:
 - **Site Title**: Change the top-left title dynamically.
 - **Primary Color**: Use the color picker to completely re-theme the UI using Material 3's dynamic color system.
 - **Custom Fonts**: Upload your own `.ttf` or `.woff` files. They maintain their original filenames and apply globally to the UI and content.
-- **Custom Favicon**: Upload an icon to change the browser tab logo (saved securely in `/uploads/favicons/`).
+- **Custom Favicon**: Upload an icon to change the browser tab logo (saved securely in `/assets/favicons/`).
 
 ### 3. Smart Theme Modes & Auto-Schedule
 The wiki supports Light and Dark modes, but you can also automate it:

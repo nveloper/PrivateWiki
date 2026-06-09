@@ -128,7 +128,7 @@ md-dialog {
 
 body:has(md-dialog[open]) .app-header,
 body:has(md-dialog[open]) .sidebar {
-  z-index: 0 !important;
+  z-index: 1 !important;
 }
 
 .app-header h1 {
