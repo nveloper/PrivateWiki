@@ -1,7 +1,8 @@
 {
-  "siteTitle": "Test Wiki",
-  "homeDocument": "welcome.md",
-  "faviconUrl": "",
-  "customFontUrl": "assets/fonts/General.ttf",
-  "customFont": "GoogleSans"
+  "primaryColor": "#978aff",
+  "customFont": "CustomFont_GoogleSansMediumttf",
+  "customFontUrl": "/uploads/fonts/GoogleSans-Medium.ttf",
+  "themeMode": "schedule",
+  "siteTitle": "DB-less Wiki",
+  "faviconUrl": "/uploads/favicons/dark-3x.png"
 }

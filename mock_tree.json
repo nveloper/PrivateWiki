@@ -1,0 +1,19 @@
+[
+  {
+    "name": "Demo Folder",
+    "type": "folder",
+    "path": "demo-folder",
+    "children": [
+      {
+        "name": "Korean.md",
+        "type": "file",
+        "path": "demo-folder/sample1.md"
+      }
+    ]
+  },
+  {
+    "name": "Welcome.md",
+    "type": "file",
+    "path": "welcome.md"
+  }
+]

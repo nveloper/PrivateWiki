@@ -1,2 +1,6 @@
-# PrivateWiki-Lite
-Lighter Private Wiki. For Github Pages.
+# PrivateWiki
+DB-less Wiki, only markdown files. Considered private use.
+
+## Usage
+
+## 
