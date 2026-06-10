@@ -341,6 +341,18 @@ document.addEventListener('DOMContentLoaded', () => {
             const processedText = processTimeMacros(markdownText);
             markdownContainer.innerHTML = breadcrumbsHtml + marked.parse(processedText);
 
+            // Wrap tables in responsive divs for mobile horizontal scrolling
+            markdownContainer.querySelectorAll('table').forEach(table => {
+                const wrapper = document.createElement('div');
+                wrapper.style.overflowX = 'auto';
+                wrapper.style.maxWidth = '100%';
+                wrapper.style.marginBottom = '24px';
+                wrapper.style.WebkitOverflowScrolling = 'touch';
+                table.parentNode.insertBefore(wrapper, table);
+                wrapper.appendChild(table);
+                table.style.marginBottom = '0'; // Remove inner margin
+            });
+
             // SPA routing for internal markdown links
             markdownContainer.querySelectorAll('a').forEach(a => {
                 const href = a.getAttribute('href');
@@ -988,8 +1000,13 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function applyFavicon(url) {
+        const appleIcon = document.getElementById('page-apple-icon');
         if (url) {
             pageFavicon.href = url;
+            if (appleIcon) appleIcon.href = url;
+        } else {
+            pageFavicon.removeAttribute('href');
+            if (appleIcon) appleIcon.removeAttribute('href');
         }
     }
 

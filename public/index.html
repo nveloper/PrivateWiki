@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title id="page-title">DB-less Wiki</title>
     <link id="page-favicon" rel="icon" href="">
+    <link id="page-apple-icon" rel="apple-touch-icon" href="">
     <script>
         try {
             const config = JSON.parse(localStorage.getItem('siteConfig')) || {};
@@ -44,7 +45,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
     <link href="https://fonts.googleapis.com/icon?family=Material+Symbols+Outlined" rel="stylesheet">
     
-    <link rel="stylesheet" href="style.css?v=27">
+    <link rel="stylesheet" href="style.css?v=28">
 </head>
 <body class="light-theme">
     <header class="app-header">
@@ -126,7 +127,7 @@
                     </md-filled-tonal-button>
                     <span id="color-value" style="font-size:14px; color:var(--md-sys-color-on-surface-variant); text-transform:uppercase;">#6750A4</span>
                 </div>
-                <md-menu id="color-palette-menu" anchor="color-picker-trigger">
+                <md-menu id="color-palette-menu" anchor="color-picker-trigger" positioning="popover">
                     <div style="padding: 16px; display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; max-width: 200px;">
                         <button type="button" class="color-chip" data-color="#6750A4" style="background-color: #6750A4;"></button>
                         <button type="button" class="color-chip" data-color="#006874" style="background-color: #006874;"></button>
@@ -306,6 +307,6 @@
         </div>
     </div>
 
-    <script src="app.js?v=40" type="module"></script>
+    <script src="app.js?v=41" type="module"></script>
 </body>
 </html>
