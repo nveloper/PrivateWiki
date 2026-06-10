@@ -238,6 +238,12 @@ app.post('/api/create/folder', requireAuth, (req, res) => {
       return res.status(409).json({ error: 'Folder already exists' });
     }
     fs.mkdirSync(newFolderPath, { recursive: true });
+    
+    // Auto-create [folderName].md
+    const defaultFilePath = path.join(newFolderPath, `${folderName}.md`);
+    const defaultContent = `# ${folderName}\n\nAutomatically Generated. Please complete the file.`;
+    fs.writeFileSync(defaultFilePath, defaultContent, 'utf8');
+
     res.json({ success: true });
   } catch (error) {
     console.error('Error creating folder:', error);

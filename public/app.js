@@ -311,21 +311,28 @@ document.addEventListener('DOMContentLoaded', () => {
 
             // Build Breadcrumbs
             const parts = path.replace(/\.md$/i, '').split('/');
+            
+            // 폴더 대표 파일일 경우 (예: US-5A/US-5A.md) 마지막 중복 이름 제거
+            if (parts.length > 1 && parts[parts.length - 1] === parts[parts.length - 2]) {
+                parts.pop();
+            }
+
             let breadcrumbsHtml = `
                 <div class="breadcrumbs" style="font-size: 14px; color: var(--md-sys-color-primary); margin-bottom: 24px; display:flex; gap:4px; align-items:center; flex-wrap:wrap;">
                     <span class="breadcrumb-home" style="cursor:pointer; display:flex; align-items:center; opacity:0.8; transition:opacity 0.2s;" onmouseover="this.style.opacity=1" onmouseout="this.style.opacity=0.8">
                         <md-icon style="font-size: 16px; margin-right: 4px;">home</md-icon> Home 
                     </span>
             `;
-            
+            let currentFolderPath = '';
             parts.forEach((p, index) => {
                 breadcrumbsHtml += `<md-icon style="font-size: 16px; opacity:0.5;">chevron_right</md-icon> `;
                 if (index === parts.length - 1) {
                     // Current file (clickable)
                     breadcrumbsHtml += `<span class="breadcrumb-current" style="cursor:pointer; font-weight:500; opacity:0.8; transition:opacity 0.2s;" onmouseover="this.style.opacity=1" onmouseout="this.style.opacity=0.8" title="Reload ${p}">${p}</span>`;
                 } else {
-                    // Folder (not clickable)
-                    breadcrumbsHtml += `<span style="opacity:0.7;">${p}</span>`;
+                    currentFolderPath += (currentFolderPath ? '/' : '') + p;
+                    // Folder (clickable)
+                    breadcrumbsHtml += `<span class="breadcrumb-folder" data-path="${currentFolderPath}/${p}" style="cursor:pointer; opacity:0.7; transition:opacity 0.2s;" onmouseover="this.style.opacity=1" onmouseout="this.style.opacity=0.7" title="Load ${p}.md">${p}</span>`;
                 }
             });
             breadcrumbsHtml += `</div>`;
@@ -365,6 +372,16 @@ document.addEventListener('DOMContentLoaded', () => {
                     loadContent(path);
                 });
             }
+
+            markdownContainer.querySelectorAll('.breadcrumb-folder').forEach(el => {
+                el.addEventListener('click', () => {
+                    const targetPath = el.getAttribute('data-path') + '.md';
+                    window.history.pushState({ path: targetPath }, '', '/?path=' + encodeURIComponent(targetPath));
+                    loadContent(targetPath);
+                    currentPath = targetPath;
+                    loadTree();
+                });
+            });
 
             if (typeof buildTOC === 'function') buildTOC();
 
