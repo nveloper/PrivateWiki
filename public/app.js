@@ -6,7 +6,7 @@ document.addEventListener('DOMContentLoaded', () => {
         marked.use(markedKatex({ throwOnError: false }));
     }
 
-    const treeContainer = document.getElementById('tree-container');
+    const treeContainer = document.getElementById('tree-content-wrapper');
     const markdownContainer = document.getElementById('markdown-container');
     const sidebar = document.getElementById('sidebar');
     const menuToggle = document.getElementById('menu-toggle');
@@ -88,6 +88,7 @@ document.addEventListener('DOMContentLoaded', () => {
             globalTreeData = treeData;
             treeContainer.innerHTML = ''; // Clear existing
             renderTree(treeData, treeContainer);
+            alignWidths(treeContainer);
             
             if (authToken) {
                 const rootAddBtn = document.createElement('div');
@@ -112,6 +113,23 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
+    // Align widths of sibling tree items
+    function alignWidths(container) {
+        requestAnimationFrame(() => {
+            const items = container.querySelectorAll(':scope > .tree-node > .tree-item');
+            if (!items.length) return;
+            
+            items.forEach(item => item.style.width = 'max-content');
+            
+            let maxWidth = 0;
+            items.forEach(item => {
+                if (item.offsetWidth > maxWidth) maxWidth = item.offsetWidth;
+            });
+            
+            items.forEach(item => item.style.width = maxWidth + 'px');
+        });
+    }
+
     // Recursively render tree DOM
     function renderTree(items, parentElement, level = 0) {
         items.forEach(item => {
@@ -120,8 +138,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
             const itemDiv = document.createElement('div');
             itemDiv.className = 'tree-item';
-            // Indentation based on level
-            itemDiv.style.paddingLeft = `${16 + (level * 16)}px`;
             
             const iconElement = document.createElement('md-icon');
             const textElement = document.createElement('span');
@@ -142,19 +158,78 @@ document.addEventListener('DOMContentLoaded', () => {
                 // Check if we need to open this folder based on currentPath
                 const isOpen = currentPath.startsWith(item.path + '/');
                 if (isOpen) {
+                    childrenWrapper.classList.remove('closed-fully');
                     childrenWrapper.classList.add('open');
                     iconElement.textContent = 'folder_open';
+                } else {
+                    childrenWrapper.classList.add('closed-fully');
                 }
 
-                itemDiv.addEventListener('click', () => {
+                itemDiv.addEventListener('click', async () => {
                     const isOpening = !childrenWrapper.classList.contains('open');
-                    childrenWrapper.classList.toggle('open');
-                    iconElement.textContent = isOpening ? 'folder_open' : 'folder';
+                    if (isOpening && !itemDiv.dataset.loaded) {
+                        iconElement.textContent = 'hourglass_empty';
+                        try {
+                            const data = await fetchNode(item.path);
+                            const childrenContainer = folderNode.querySelector('.tree-children');
+                            childrenWrapper.classList.remove('closed-fully');
+                            void childrenWrapper.offsetWidth;
+                            
+                            renderTree(data, childrenContainer, item.path);
+                            itemDiv.dataset.loaded = 'true';
+                            iconElement.textContent = 'folder_open';
+                            childrenWrapper.classList.add('open');
+                        } catch(e) {
+                            iconElement.textContent = 'folder';
+                        }
+                    } else if (!isOpening) {
+                        childrenWrapper.classList.remove('open');
+                        iconElement.textContent = 'folder';
+                        const handler = (e) => {
+                            if (!childrenWrapper.classList.contains('open')) {
+                                childrenWrapper.classList.add('closed-fully');
+                            }
+                            childrenWrapper.removeEventListener('transitionend', handler);
+                        };
+                        childrenWrapper.addEventListener('transitionend', handler);
+                        setTimeout(() => {
+                            if (!childrenWrapper.classList.contains('open')) {
+                                childrenWrapper.classList.add('closed-fully');
+                            }
+                        }, 350);
+                    } else {
+                        childrenWrapper.classList.remove('closed-fully');
+                        void childrenWrapper.offsetWidth;
+                        childrenWrapper.classList.add('open');
+                        iconElement.textContent = 'folder_open';
+                    }
+                    if (isOpening) {
+                        childrenWrapper.classList.remove('closed-fully');
+                        void childrenWrapper.offsetWidth;
+                        childrenWrapper.classList.add('open');
+                        iconElement.textContent = 'folder_open';
+                    } else {
+                        childrenWrapper.classList.remove('open');
+                        iconElement.textContent = 'folder';
+                        const handler = (e) => {
+                            if (!childrenWrapper.classList.contains('open')) {
+                                childrenWrapper.classList.add('closed-fully');
+                            }
+                            childrenWrapper.removeEventListener('transitionend', handler);
+                        };
+                        childrenWrapper.addEventListener('transitionend', handler);
+                        setTimeout(() => {
+                            if (!childrenWrapper.classList.contains('open')) {
+                                childrenWrapper.classList.add('closed-fully');
+                            }
+                        }, 350);
+                    }
                 });
 
                 nodeDiv.appendChild(itemDiv);
                 nodeDiv.appendChild(childrenWrapper);
                 renderTree(item.children, childrenContainer, level + 1);
+                alignWidths(childrenContainer);
 
             } else if (item.type === 'file') {
                 iconElement.textContent = 'description';
@@ -659,84 +734,158 @@ document.addEventListener('DOMContentLoaded', () => {
     editBtn.addEventListener('click', () => {
         isEditMode = true;
         editBtn.style.display = 'none';
-        imageUploadBtn.style.display = 'inline-flex';
+        if (typeof imageUploadBtn !== 'undefined' && imageUploadBtn) imageUploadBtn.style.display = 'inline-flex';
 
         markdownContainer.innerHTML = `
-            <div class="edit-actions" style="margin-bottom: 16px; display:flex; justify-content: space-between; align-items: center;">
-                <div class="editor-toolbar" style="display:flex; gap: 4px; flex-wrap: wrap;">
+            <div class="edit-actions" style="margin-bottom: 16px; display:flex; justify-content: space-between; align-items: center; flex-wrap:wrap; gap:8px;">
+                <div class="editor-toolbar" style="display:flex; gap: 4px; flex-wrap: wrap; background: var(--md-sys-color-surface-variant); padding: 4px; border-radius: 8px;">
                     <md-icon-button class="format-btn" data-format="**" title="Bold"><md-icon>format_bold</md-icon></md-icon-button>
                     <md-icon-button class="format-btn" data-format="*" title="Italic"><md-icon>format_italic</md-icon></md-icon-button>
                     <md-icon-button class="format-btn" data-prefix="## " title="Heading 2"><md-icon>format_h2</md-icon></md-icon-button>
                     <md-icon-button class="format-btn" data-prefix="### " title="Heading 3"><md-icon>format_h3</md-icon></md-icon-button>
                     <md-icon-button class="format-btn" data-format="[link](url)" title="Link"><md-icon>link</md-icon></md-icon-button>
                     <md-icon-button class="format-btn" data-prefix="- " title="List"><md-icon>format_list_bulleted</md-icon></md-icon-button>
+                    <md-icon-button class="format-btn" id="mobile-toggle-preview" title="Toggle Preview" style="display:none;"><md-icon>visibility</md-icon></md-icon-button>
                 </div>
-                <div style="display:flex; gap: 8px;">
-                    <md-text-button id="edit-cancel-btn">Cancel</md-text-button>
+                <div style="display:flex; gap: 8px; align-items:center;">
+                    <span id="auto-save-status" style="font-size: 12px; color: var(--md-sys-color-on-surface-variant); margin-right: 8px;">Up to date</span>
+                    <md-text-button id="edit-cancel-btn">Close</md-text-button>
                     <md-filled-button id="edit-save-btn">Save</md-filled-button>
                 </div>
             </div>
-            <div class="editor-split-pane">
-                <md-outlined-text-field type="textarea" id="edit-textarea" label="Edit Markdown Document" style="width: 100%; height: 70vh; --md-outlined-text-field-container-shape: 12px;">
-                </md-outlined-text-field>
-                <div id="live-preview-pane" class="markdown-body"></div>
+            <div class="editor-split-pane" id="editor-split-pane" style="display: flex; gap: 16px; flex-direction: row; height: 70vh;">
+                <div id="editor-wrapper" style="flex: 1; display:flex; flex-direction:column; min-height:0;">
+                    <textarea id="edit-textarea"></textarea>
+                </div>
+                <div id="live-preview-pane" class="markdown-body" style="flex: 1; border-radius: 12px; overflow-y: auto; border: 1px solid var(--md-sys-color-outline); padding: 16px; background: var(--md-sys-color-surface);"></div>
             </div>
         `;
         
         const textarea = document.getElementById('edit-textarea');
         const previewPane = document.getElementById('live-preview-pane');
-        textarea.value = currentMarkdown;
-        previewPane.innerHTML = marked.parse(currentMarkdown);
+        const splitPane = document.getElementById('editor-split-pane');
+        const editorWrapper = document.getElementById('editor-wrapper');
+        
+        // Recover draft
+        const draftKey = 'draft_' + currentPath;
+        const savedDraft = localStorage.getItem(draftKey);
+        if (savedDraft && savedDraft !== currentMarkdown) {
+            if (confirm('An unsaved draft exists for this document. Would you like to restore it?')) {
+                textarea.value = savedDraft;
+            } else {
+                textarea.value = currentMarkdown;
+            }
+        } else {
+            textarea.value = currentMarkdown;
+        }
+        
+        previewPane.innerHTML = marked.parse(textarea.value);
 
-        // Live Preview update
-        textarea.addEventListener('input', () => {
-            previewPane.innerHTML = marked.parse(textarea.value);
+        // Responsive handling for Edit/Preview split
+        const togglePreviewBtn = document.getElementById('mobile-toggle-preview');
+        let showPreviewOnly = false;
+
+        function updateLayout() {
+            if (window.innerWidth <= 768) {
+                splitPane.style.flexDirection = 'column';
+                if (showPreviewOnly) {
+                    editorWrapper.style.display = 'none';
+                    previewPane.style.display = 'block';
+                    togglePreviewBtn.querySelector('md-icon').textContent = 'edit';
+                } else {
+                    editorWrapper.style.display = 'flex';
+                    previewPane.style.display = 'none';
+                    togglePreviewBtn.querySelector('md-icon').textContent = 'visibility';
+                }
+                togglePreviewBtn.style.display = 'inline-flex';
+            } else {
+                splitPane.style.flexDirection = 'row';
+                editorWrapper.style.display = 'flex';
+                previewPane.style.display = 'block';
+                togglePreviewBtn.style.display = 'none';
+            }
+        }
+        
+        togglePreviewBtn.addEventListener('click', () => {
+            showPreviewOnly = !showPreviewOnly;
+            updateLayout();
+        });
+        window.addEventListener('resize', updateLayout);
+        updateLayout();
+
+        // Initialize CodeMirror
+        const isDark = document.documentElement.style.colorScheme === 'dark' || document.documentElement.getAttribute('data-theme') === 'dark';
+        const cm = CodeMirror.fromTextArea(textarea, {
+            mode: 'markdown',
+            theme: isDark ? 'material-darker' : 'default',
+            lineWrapping: true,
+            autoCloseBrackets: true,
+            extraKeys: {"Enter": "newlineAndIndentContinueMarkdownList"}
+        });
+        cm.setSize("100%", "100%");
+        cm.getWrapperElement().style.flex = "1";
+        cm.getWrapperElement().style.fontSize = "16px"; // Better for mobile
+
+        // Update CodeMirror theme when overall theme changes
+        const observer = new MutationObserver(() => {
+            const isNowDark = document.documentElement.getAttribute('data-theme') === 'dark';
+            cm.setOption('theme', isNowDark ? 'material-darker' : 'default');
+        });
+        observer.observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+
+        // Auto-save logic
+        const saveStatus = document.getElementById('auto-save-status');
+        let autoSaveTimer;
+
+        cm.on('change', () => {
+            const val = cm.getValue();
+            previewPane.innerHTML = marked.parse(val);
+            
+            saveStatus.textContent = 'Unsaved changes';
+            clearTimeout(autoSaveTimer);
+            autoSaveTimer = setTimeout(() => {
+                localStorage.setItem(draftKey, val);
+                saveStatus.textContent = 'Saved to draft at ' + new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit', second:'2-digit'});
+            }, 2000);
         });
 
         // Toolbar formatting
         document.querySelectorAll('.format-btn').forEach(btn => {
+            if (btn.id === 'mobile-toggle-preview') return;
             btn.addEventListener('click', () => {
                 const format = btn.getAttribute('data-format');
                 const prefix = btn.getAttribute('data-prefix');
-                // The md-outlined-text-field element is a web component, we need its inner textarea
-                const innerTextarea = textarea.shadowRoot ? textarea.shadowRoot.querySelector('textarea') : textarea;
                 
-                let start = textarea.value.length;
-                let end = textarea.value.length;
-                if (innerTextarea && typeof innerTextarea.selectionStart !== 'undefined') {
-                    start = innerTextarea.selectionStart;
-                    end = innerTextarea.selectionEnd;
-                }
-
-                const val = textarea.value;
-                let newVal = val;
+                const doc = cm.getDoc();
+                const selection = doc.getSelection();
                 
                 if (format) {
                     if (format.includes('link')) {
-                        newVal = val.substring(0, start) + '[text](url)' + val.substring(end);
+                        doc.replaceSelection('[text](url)');
                     } else {
-                        const selectedText = val.substring(start, end) || 'text';
-                        newVal = val.substring(0, start) + format + selectedText + format + val.substring(end);
+                        const selectedText = selection || 'text';
+                        doc.replaceSelection(format + selectedText + format);
                     }
                 } else if (prefix) {
-                    let lineStart = val.lastIndexOf('\n', start - 1);
-                    lineStart = lineStart === -1 ? 0 : lineStart + 1;
-                    newVal = val.substring(0, lineStart) + prefix + val.substring(lineStart);
+                    const cursor = doc.getCursor();
+                    const line = doc.getLine(cursor.line);
+                    doc.replaceRange(prefix, {line: cursor.line, ch: 0});
                 }
-
-                textarea.value = newVal;
-                previewPane.innerHTML = marked.parse(textarea.value);
+                cm.focus();
             });
         });
 
         document.getElementById('edit-cancel-btn').addEventListener('click', () => {
             isEditMode = false;
-            imageUploadBtn.style.display = 'none';
+            if (typeof imageUploadBtn !== 'undefined' && imageUploadBtn) imageUploadBtn.style.display = 'none';
+            observer.disconnect();
             loadContent(currentPath);
         });
 
         document.getElementById('edit-save-btn').addEventListener('click', async () => {
-            const newContent = document.getElementById('edit-textarea').value;
+            clearTimeout(autoSaveTimer);
+            saveStatus.textContent = 'Saving...';
+            const newContent = cm.getValue();
             try {
                 const res = await fetch('/api/content', {
                     method: 'POST',
@@ -748,13 +897,17 @@ document.addEventListener('DOMContentLoaded', () => {
                 });
                 const data = await res.json();
                 if (data.success) {
+                    localStorage.removeItem(draftKey);
                     isEditMode = false;
-                    imageUploadBtn.style.display = 'none';
+                    if (typeof imageUploadBtn !== 'undefined' && imageUploadBtn) imageUploadBtn.style.display = 'none';
+                    observer.disconnect();
                     loadContent(currentPath);
                 } else {
+                    saveStatus.textContent = 'Save Failed';
                     alert('Save failed: ' + data.error);
                 }
             } catch (err) {
+                saveStatus.textContent = 'Save Error';
                 alert('Save error');
             }
         });
