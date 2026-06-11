@@ -745,3 +745,58 @@ md-outlined-select::part(menu) {
     padding: 16px 24px;
   }
 }
+
+/* Material You CodeMirror Overrides */
+.CodeMirror, .cm-s-material-darker.CodeMirror, .cm-s-default.CodeMirror {
+    background-color: var(--md-sys-color-surface-container) !important;
+    color: var(--md-sys-color-on-surface) !important;
+    border: 2px solid var(--md-sys-color-outline) !important;
+    border-radius: 12px !important; /* Match preview pane */
+    font-family: 'Roboto Mono', Consolas, monospace !important;
+    font-size: 16px !important; /* Prevent iOS zoom */
+    transition: border-color 0.2s, background-color 0.2s;
+    box-sizing: border-box;
+    outline: none !important;
+    -webkit-appearance: none;
+}
+
+.CodeMirror-focused, .cm-s-material-darker.CodeMirror-focused {
+    border-color: var(--md-sys-color-primary) !important;
+    outline: none !important;
+}
+
+/* Syntax Highlighting */
+.cm-s-material-darker .cm-header, .cm-s-default .cm-header { color: var(--md-sys-color-primary) !important; font-weight: bold; }
+.cm-s-material-darker .cm-link, .cm-s-default .cm-link { color: var(--md-sys-color-tertiary) !important; text-decoration: underline; }
+.cm-s-material-darker .cm-url, .cm-s-default .cm-url { color: var(--md-sys-color-secondary) !important; }
+.cm-s-material-darker .cm-strong, .cm-s-default .cm-strong { font-weight: bold; color: var(--md-sys-color-on-surface) !important; }
+.cm-s-material-darker .cm-em, .cm-s-default .cm-em { font-style: italic; color: var(--md-sys-color-on-surface) !important; }
+.cm-s-material-darker .cm-comment, .cm-s-default .cm-comment { color: var(--md-sys-color-on-surface-variant) !important; }
+.cm-s-material-darker .cm-string, .cm-s-default .cm-string, .cm-s-material-darker .cm-string-2 { color: var(--md-sys-color-secondary) !important; }
+.cm-s-material-darker .cm-variable, .cm-s-material-darker .cm-variable-2, .cm-s-material-darker .cm-variable-3, .cm-s-default .cm-variable { color: var(--md-sys-color-on-surface) !important; }
+.cm-s-material-darker .cm-keyword, .cm-s-default .cm-keyword { color: var(--md-sys-color-primary) !important; }
+.cm-s-material-darker .cm-property, .cm-s-default .cm-property { color: var(--md-sys-color-on-surface) !important; }
+
+/* Gutters / Line Numbers */
+.CodeMirror-gutters, .cm-s-material-darker .CodeMirror-gutters {
+    background-color: var(--md-sys-color-surface-container) !important;
+    border-right: 1px solid var(--md-sys-color-outline-variant) !important;
+    border-top-left-radius: 10px !important;
+    border-bottom-left-radius: 10px !important;
+}
+.CodeMirror-vscrollbar {
+    border-top-right-radius: 10px !important;
+    border-bottom-right-radius: 10px !important;
+}
+.CodeMirror-linenumber, .cm-s-material-darker .CodeMirror-linenumber {
+    color: var(--md-sys-color-on-surface-variant) !important;
+}
+.CodeMirror-cursor {
+    border-left: 2px solid var(--md-sys-color-primary) !important;
+}
+.CodeMirror-selected, .cm-s-material-darker .CodeMirror-selected {
+    background-color: var(--md-sys-color-secondary-container) !important;
+}
+.CodeMirror-focused .CodeMirror-selected {
+    background-color: var(--md-sys-color-primary-container) !important;
+}
